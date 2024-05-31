@@ -16,9 +16,7 @@ Cursor cursor_new() {
     return result;
 }
 
-static inline float cursor_compute_phase(void) {
-    return fabs(cosf(GetTime() * 2)) * .7f;
-}
+static inline float cursor_compute_phase(void) { return fabs(cosf(GetTime() * 2)) * .7f; }
 
 static void cursor_handle_alplha_change(Cursor* this) {
     if (this->flags & CURSOR_FLAG_FOCUSED) {
@@ -39,16 +37,14 @@ static void cursor_handle_alplha_change(Cursor* this) {
 
     if (this->flags & _CURSOR_FLAG_BLINK_DELAY) {
         this->blink_delay_ms -= GetFrameTime() * 1e3;
-        if (this->blink_delay_ms <= 0 &&
-            (cursor_compute_phase() - .7f) >= -.01f) {
+        if (this->blink_delay_ms <= 0 && (cursor_compute_phase() - .7f) >= -.01f) {
             this->blink_duration_ms = 8 * 1e3;
             this->flags &= ~_CURSOR_FLAG_BLINK_DELAY;
             this->flags |= _CURSOR_FLAG_BLINK;
         }
     }
 
-    if (this->flags ^ _CURSOR_FLAG_BLINK_DELAY &&
-        this->flags & _CURSOR_FLAG_BLINK) {
+    if (this->flags ^ _CURSOR_FLAG_BLINK_DELAY && this->flags & _CURSOR_FLAG_BLINK) {
         float phase = cursor_compute_phase();
         this->alpha = phase * this->max_alpha;
         this->blink_duration_ms -= GetFrameTime() * 1e3;
@@ -63,10 +59,9 @@ void cursor_draw(Cursor* this, float x, float y) {
     cursor_handle_alplha_change(this);
 
     motion_update(&this->motion, (float[2]){x, y}, GetFrameTime());
-    DrawRectangleRec(
-        (Rectangle){.x = this->motion.position[0],
-                    .y = this->motion.position[1],
-                    .width = 2.0f,
-                    .height = g_cfg.btn_typo.size},
-        (Color){.r = 0xff, .g = 0xff, .b = 0xff, .a = this->alpha});
+    DrawRectangleRec((Rectangle){.x = this->motion.position[0],
+                                 .y = this->motion.position[1],
+                                 .width = 2.0f,
+                                 .height = 14.f},
+                     (Color){.r = 0xff, .g = 0xff, .b = 0xff, .a = this->alpha});
 }

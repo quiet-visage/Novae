@@ -24,12 +24,12 @@ void main()
 {
     // Texel color fetching from texture sampler
     vec4 orig = texture(texture0, fragTexCoord);
-    vec3 texelColor = (orig.rgb*(orig.a/255))*weight[0];
+    vec3 texelColor = (orig.rgb*);
 
     for (int i = 1; i < 3; i++)
     {
-        texelColor.rbga += texture(texture0, fragTexCoord + vec2(offset[i])/renderWidth, 0.0).rgba*weight[i];
-        texelColor.rbga += texture(texture0, fragTexCoord - vec2(offset[i])/renderWidth, 0.0).rgba*weight[i];
+        texelColor.rbg += texture(texture0, fragTexCoord + vec2(offset[i])/renderWidth, 0.0).rgb*weight[i];
+        texelColor.rbg += texture(texture0, fragTexCoord - vec2(offset[i])/renderWidth, 0.0).rgb*weight[i];
     }
 
     finalColor = texelColor;

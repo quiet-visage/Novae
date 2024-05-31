@@ -8,5 +8,4 @@ typedef struct {
 } Check_Btn;
 
 Check_Btn check_btn_create();
-bool check_btn_draw(Check_Btn* m, bool* checked, float x, float y,
-                    Draw_Opts opts);
+bool check_btn_draw(Check_Btn* m, bool* checked, float x, float y, Draw_Opts opts);

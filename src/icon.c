@@ -8,14 +8,11 @@
 #define ICON_RELATIVE_FOLDER "resources/icons"
 #define ICON_PATH(NAME) (ICON_RELATIVE_FOLDER "/" NAME)
 
-const char* g_icon_paths[] = {
-    [ICON_ADD_CIRCLE] = ICON_PATH("add_circle.svg"),
-    [ICON_INFINITE] = ICON_PATH("infinite.svg"),
-    [ICON_MOVE_UP] = ICON_PATH("move_up.svg")
-};
+const char* g_icon_paths[] = {[ICON_ADD_CIRCLE] = ICON_PATH("add_circle.svg"),
+                              [ICON_INFINITE] = ICON_PATH("infinite.svg"),
+                              [ICON_MOVE_UP] = ICON_PATH("move_up.svg")};
 Texture g_icons[ICON_COUNT] = {0};
-static_assert(sizeof(g_icon_paths) / sizeof(*g_icon_paths) ==
-                  ICON_COUNT &&
+static_assert(sizeof(g_icon_paths) / sizeof(*g_icon_paths) == ICON_COUNT &&
               "Icon paths need to be updated");
 
 void icon_init(void) {

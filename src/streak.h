@@ -1,6 +1,6 @@
 #pragma once
 
-#include "raylib.h"
-void streak_init(Shader bloom);
+void streak_init(void);
 void streak_terminate(void);
-void streak_draw(void);
+float streak_max_height(void);
+void streak_draw(float x, float y);

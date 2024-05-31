@@ -17,6 +17,8 @@
 #include "motion.h"
 #include "text_view.h"
 
+static FF_Style* g_style = &g_cfg.sstyle;
+
 Task_Creator task_creator_create() {
     Task_Creator ret = {.name_buf = c32_vec_create(),
                         .digit_buf = c32_vec_create(),
@@ -43,18 +45,14 @@ void task_creator_destroy(Task_Creator* m) {
     btn_destroy(&m->add_btn);
 }
 
-static float get_name_cursor_x(const C32_Vec* buf, size_t curs,
-                               float offset_x, float horz_scroll) {
+static float get_name_cursor_x(const C32_Vec* buf, size_t curs, float offset_x, float horz_scroll) {
     assert(curs <= buf->len);
     if (curs == 0) return offset_x;
-    float w = ff_measure_utf32(buf->data, curs, g_cfg.btn_typo.font,
-                               g_cfg.btn_typo.size, 0)
-                  .width;
+    float w = ff_measure_utf32(buf->data, curs, *g_style).width;
     return offset_x + w - horz_scroll;
 }
 
-static void draw_selection(C32_Vec* buf, Editor* ed, float x,
-                           float y) {
+static void draw_selection(C32_Vec* buf, Editor* ed, float x, float y) {
     assert(ed->state == EDITOR_SELECTION);
     assert(ed->sel_to >= ed->sel_to);
     size_t sel_len = ed->sel_to - ed->sel_from;
@@ -62,19 +60,13 @@ static void draw_selection(C32_Vec* buf, Editor* ed, float x,
 
     float sx = x;
     if (ed->sel_from) {
-        sx += ff_measure_utf32(buf->data, ed->sel_from,
-                               g_cfg.btn_typo.font,
-                               g_cfg.btn_typo.size, 0)
-                  .width;
+        sx += ff_measure_utf32(buf->data, ed->sel_from, *g_style).width;
     }
-    float width =
-        ff_measure_utf32(&buf->data[ed->sel_from], sel_len,
-                         g_cfg.btn_typo.font, g_cfg.btn_typo.size, 0)
-            .width;
+    float width = ff_measure_utf32(&buf->data[ed->sel_from], sel_len, *g_style).width;
 
-    Color col = GetColor(g_color[g_cfg.theme][COLOR_SURFACE2]);
+    Color col = GET_RCOLOR(COLOR_SURFACE2);
     col.a = 0x9a;
-    DrawRectangle(sx, y, width, g_cfg.btn_typo.size, col);
+    DrawRectangle(sx, y, width, g_style->typo.size, col);
     rlDrawRenderBatchActive();
 }
 
@@ -85,44 +77,33 @@ static void draw_selection(C32_Vec* buf, Editor* ed, float x,
 //     if (!CheckCollisionPointRec(mouse, bounds)) return;
 // }
 
-static void handle_digit_edit(Task_Creator* m, Rectangle n_task_bg,
-                              bool enabled) {
+static void handle_digit_edit(Task_Creator* m, Rectangle n_task_bg, bool enabled) {
     if (enabled) {
-        bool changed =
-            editor_handle_input(&m->digit_ed, &m->digit_buf);
+        bool changed = editor_handle_input(&m->digit_ed, &m->digit_buf);
         m->digit_curs.flags |= CURSOR_FLAG_FOCUSED;
-        if (changed)
-            m->digit_curs.flags |= CURSOR_FLAG_RECENTLY_MOVED;
+        if (changed) m->digit_curs.flags |= CURSOR_FLAG_RECENTLY_MOVED;
     } else {
         m->digit_curs.flags &= ~CURSOR_FLAG_FOCUSED;
     }
 
     if (m->name_ed.state == EDITOR_SELECTION && m->digit_buf.len)
-        draw_selection(&m->digit_buf, &m->digit_ed, n_task_bg.x,
-                       n_task_bg.y);
+        draw_selection(&m->digit_buf, &m->digit_ed, n_task_bg.x, n_task_bg.y);
 
-    float glyph_width =
-        ff_measure_utf32(m->digit_buf.data, m->digit_buf.len,
-                         g_cfg.btn_typo.font, g_cfg.btn_typo.size, 0)
-            .width;
+    float glyph_width = ff_measure_utf32(m->digit_buf.data, m->digit_buf.len, *g_style).width;
     float x = CENTER(n_task_bg.x, n_task_bg.width, glyph_width);
-    ff_draw_str32(m->digit_buf.data, m->digit_buf.len, x,
-                  n_task_bg.y + g_cfg.btn_typo.size * .25f,
-                  (float*)g_cfg.global_projection, g_cfg.btn_typo,
-                  FF_FLAG_DEFAULT, 0);
+    ff_draw_str32(m->digit_buf.data, m->digit_buf.len, x, n_task_bg.y + g_style->typo.size * .25f,
+                  (float*)g_cfg.global_projection, *g_style);
 
-    float cursor_y =
-        CENTER(n_task_bg.y, n_task_bg.height, g_cfg.btn_typo.size);
-    cursor_draw(&m->digit_curs,
-                get_name_cursor_x(&m->digit_buf, m->digit_ed.cursor,
-                                  x, m->name_hor_motion.position[0]),
-                cursor_y);
+    float cursor_y = CENTER(n_task_bg.y, n_task_bg.height, g_style->typo.size);
+    cursor_draw(
+        &m->digit_curs,
+        get_name_cursor_x(&m->digit_buf, m->digit_ed.cursor, x, m->name_hor_motion.position[0]),
+        cursor_y);
 
     m->digit_curs.flags &= ~CURSOR_FLAG_FOCUSED;
 }
 
-static void handle_name_edit(Task_Creator* m, Rectangle name_bg,
-                             bool enabled) {
+static void handle_name_edit(Task_Creator* m, Rectangle name_bg, bool enabled) {
     if (enabled) {
         bool changed = editor_handle_input(&m->name_ed, &m->name_buf);
         m->name_curs.flags |= CURSOR_FLAG_FOCUSED;
@@ -131,21 +112,17 @@ static void handle_name_edit(Task_Creator* m, Rectangle name_bg,
         m->name_curs.flags &= ~CURSOR_FLAG_FOCUSED;
     }
 
-    horizontal_scroll(m->name_buf.data, m->name_buf.len,
-                      m->name_ed.cursor, &m->target_scroll,
-                      g_cfg.btn_typo.font, g_cfg.btn_typo.size,
-                      name_bg.width);
+    horizontal_scroll(m->name_buf.data, m->name_buf.len, m->name_ed.cursor, &m->target_scroll,
+                      *g_style, name_bg.width);
     update_scroll_animation(&m->name_hor_motion, m->target_scroll, 0);
     float projection[4][4];
     get_text_projection(projection, &m->name_hor_motion);
     if (m->name_buf.len)
-        ff_draw_str32(m->name_buf.data, m->name_buf.len, name_bg.x,
-                      name_bg.y, (float*)projection, g_cfg.btn_typo,
-                      0, 0);
+        ff_draw_str32(m->name_buf.data, m->name_buf.len, name_bg.x, name_bg.y, (float*)projection,
+                      *g_style);
 
     float cursor_scroll_offset = m->name_hor_motion.position[0];
-    float cursor_x = get_cursor_x(m->name_buf.data, m->name_buf.len,
-                                  g_cfg.btn_typo, m->name_ed.cursor,
+    float cursor_x = get_cursor_x(m->name_buf.data, m->name_buf.len, *g_style, m->name_ed.cursor,
                                   name_bg.x - cursor_scroll_offset);
     cursor_draw(&m->name_curs, cursor_x, name_bg.y);
 }
@@ -161,9 +138,7 @@ static U8 get_left(Task_Creator* m) {
     return ret;
 }
 
-inline float task_creator_height(void) {
-    return g_cfg.btn_typo.size + g_cfg.inner_gap * 2;
-}
+inline float task_creator_height(void) { return g_style->typo.size + g_cfg.inner_gap * 2; }
 
 static void clear(Task_Creator* m) {
     m->name_buf.len = 0;
@@ -172,15 +147,15 @@ static void clear(Task_Creator* m) {
     editor_clear(&m->name_ed);
 }
 
-bool task_creator_draw(Task_Creator* m, Task* out, float x, float y,
-                       float max_width, bool enable_input) {
+bool task_creator_draw(Task_Creator* m, Task* out, float x, float y, float max_width,
+                       bool enable_input) {
     Rectangle bg_rec;
     bg_rec.x = x;
     bg_rec.y = y;
     bg_rec.width = max_width;
     bg_rec.height = task_creator_height();
     float bg_rad = RADIUS_TO_ROUNDNESS(8, bg_rec.height);
-    Color bg_col = GetColor(g_color[g_cfg.theme][COLOR_BASE]);
+    Color bg_col = GET_RCOLOR(COLOR_BASE);
     DrawRectangleRounded(bg_rec, bg_rad, 6, bg_col);
 
     float cx = x + g_cfg.inner_gap;
@@ -188,26 +163,22 @@ bool task_creator_draw(Task_Creator* m, Task* out, float x, float y,
     float btn_x = cx;
     float btn_sz = btn_height(&m->add_btn);
     float btn_y = CENTER(y, bg_rec.height, btn_sz);
-    bool clicked_add = btn_draw_with_icon(
-        &m->add_btn, ICON_ADD_CIRCLE, btn_x, btn_y);
+    bool clicked_add = btn_draw_with_icon(&m->add_btn, ICON_ADD_CIRCLE, btn_x, btn_y);
 
     Rectangle n_task_bg;
-    n_task_bg.width = 2 * g_cfg.btn_typo.size;
+    n_task_bg.width = 2 * g_style->typo.size;
 
     Rectangle name_bg;
     name_bg.x = btn_x + btn_sz + g_cfg.inner_gap;
     float right_side_width = n_task_bg.width + g_cfg.inner_gap * 2;
     float left_side_width = btn_sz + g_cfg.inner_gap * 2;
-    name_bg.width =
-        (bg_rec.width - right_side_width - left_side_width);
-    name_bg.height = g_cfg.btn_typo.size * 1.5f;
+    name_bg.width = (bg_rec.width - right_side_width - left_side_width);
+    name_bg.height = g_style->typo.size * 1.5f;
     name_bg.y = CENTER(y, bg_rec.height, name_bg.height);
-    Color surface0_col =
-        GetColor(g_color[g_cfg.theme][COLOR_SURFACE0]);
+    Color surface0_col = GET_RCOLOR(COLOR_SURFACE0);
     DrawRectangleRounded(name_bg, 1.0f, 6, surface0_col);
 
-    n_task_bg.x =
-        bg_rec.x + bg_rec.width - g_cfg.inner_gap - n_task_bg.width;
+    n_task_bg.x = bg_rec.x + bg_rec.width - g_cfg.inner_gap - n_task_bg.width;
     n_task_bg.height = name_bg.height;
     n_task_bg.y = name_bg.y;
     DrawRectangleRounded(n_task_bg, 1.0f, 6, surface0_col);
@@ -215,13 +186,11 @@ bool task_creator_draw(Task_Creator* m, Task* out, float x, float y,
 
     clip_begin(bg_rec.x, bg_rec.y, bg_rec.width, bg_rec.height);
 
-    clip_begin_rounded(name_bg.x, name_bg.y, name_bg.width,
-                       name_bg.height, 16.f);
+    clip_begin_rounded(name_bg.x, name_bg.y, name_bg.width, name_bg.height, 16.f);
     handle_name_edit(m, name_bg, m->focus == TC_NAME);
     clip_end();
 
-    clip_begin_rounded(n_task_bg.x, n_task_bg.y, n_task_bg.width,
-                       n_task_bg.height, 16.f);
+    clip_begin_rounded(n_task_bg.x, n_task_bg.y, n_task_bg.width, n_task_bg.height, 16.f);
     handle_digit_edit(m, n_task_bg, m->focus == TC_COUNT);
     clip_end();
     clip_end();
@@ -230,8 +199,7 @@ bool task_creator_draw(Task_Creator* m, Task* out, float x, float y,
         m->focus = (m->focus + 1) % 2;
     }
 
-    if ((clicked_add || STICKY(KEY_ENTER)) && m->name_buf.len &&
-        m->digit_buf.len) {
+    if ((clicked_add || STICKY(KEY_ENTER)) && m->name_buf.len && m->digit_buf.len) {
         assert(out);
         task_set_name(out, m->name_buf.data, m->name_buf.len);
         out->left = get_left(m);

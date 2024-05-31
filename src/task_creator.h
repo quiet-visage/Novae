@@ -25,5 +25,5 @@ typedef struct {
 Task_Creator task_creator_create();
 float task_creator_height(void);
 void task_creator_destroy(Task_Creator* m);
-bool task_creator_draw(Task_Creator* m, Task* out, float x, float y,
-                       float max_width, bool enable_input);
+bool task_creator_draw(Task_Creator* m, Task* out, float x, float y, float max_width,
+                       bool enable_input);

@@ -9,6 +9,8 @@
 #include "motion.h"
 #include "raylib.h"
 
+static FF_Style *g_style = &g_cfg.sstyle;
+
 Btn btn_create(void) {
     Btn ret = {.motion = motion_new(),
                .glyphs = ff_glyph_vec_create(),
@@ -27,23 +29,16 @@ void btn_set_label(Btn *m, const char *str) {
 
     size_t str_len = strlen(str);
 
-    FF_Dimensions dims =
-        ff_print_utf8_vec(&m->glyphs, str, str_len, g_cfg.btn_typo, 0,
-                          0, FF_FLAG_DEFAULT, 0);
+    FF_Dimensions dims = ff_print_utf8_vec(&m->glyphs, str, str_len, 0, 0, *g_style);
 
     m->glyphs_width = dims.width;
     m->glyphs_height = dims.height;
 }
 
-float btn_width(Btn *m) {
-    return g_cfg.btn_pad_horz * 2 + m->glyphs_width;
-}
+float btn_width(Btn *m) { return g_cfg.btn_pad_horz * 2 + m->glyphs_width; }
 
 #define MAX(X, Y) (X > Y ? X : Y)
-float btn_height(Btn *m) {
-    return g_cfg.btn_pad_vert * 2 +
-           MAX(BTN_ICON_SIZE, g_cfg.btn_typo.size);
-}
+float btn_height(Btn *m) { return g_cfg.btn_pad_vert * 2 + MAX(BTN_ICON_SIZE, g_style->typo.size); }
 
 void btn_handle_expansion_anim(Btn *m, Rectangle *bounds) {
     motion_update(&m->motion, &bounds->width, GetFrameTime());
@@ -52,7 +47,6 @@ void btn_handle_expansion_anim(Btn *m, Rectangle *bounds) {
 }
 
 bool btn_draw(Btn *m, float x, float y) {
-    FF_Typo fg_typo = g_cfg.btn_typo;
     Rectangle bounds = {
         .x = x,
         .y = y,
@@ -60,10 +54,9 @@ bool btn_draw(Btn *m, float x, float y) {
         .height = btn_height(m),
     };
 
-    bool hovering =
-        CheckCollisionPointRec(GetMousePosition(), bounds);
-    bool released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    bool result = hovering && released ? true : false;
+    bool hovering = CheckCollisionPointRec(GetMousePosition(), bounds);
+    bool act = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    bool result = hovering && act ? true : false;
 
     bool draw_bg = !(m->flags & BTN_FLAG_DONT_DRAW_BG);
     if (draw_bg) {
@@ -71,7 +64,7 @@ bool btn_draw(Btn *m, float x, float y) {
         if (hovering) {
             target[0] += 6;
             target[1] += 4;
-            fg_typo.color = g_color[g_cfg.theme][COLOR_ROSEWATER];
+            // g_style->typo.color = g_color[g_cfg.theme][COLOR_ROSEWATER];
         }
         motion_update(&m->motion, target, GetFrameTime());
         bounds.width += m->motion.position[0];
@@ -79,29 +72,19 @@ bool btn_draw(Btn *m, float x, float y) {
         bounds.x -= m->motion.position[0] * .5f;
         bounds.y -= m->motion.position[1] * .5f;
 
-        float rad = bounds.width > bounds.height
-                        ? 2 * 8 / bounds.height
-                        : 2 * 8 / bounds.width;
-        DrawRectangleRounded(
-            bounds, rad, 6,
-            GetColor(g_color[g_cfg.theme][COLOR_SURFACE0]));
-        rlDrawRenderBatchActive();
+        DRAW_BG(bounds, 8.f, COLOR_SURFACE0);
     }
 
-    float fg_x =
-        bounds.x + bounds.width * .5f - m->glyphs_width * .5f;
-    float fg_y =
-        bounds.y + bounds.height * .5f - m->glyphs_height * .5f;
+    float fg_x = bounds.x + bounds.width * .5f - m->glyphs_width * .5f;
+    float fg_y = bounds.y + bounds.height * .5f - m->glyphs_height * .5f;
     ff_set_glyphs_pos(m->glyphs.data, m->glyphs.len, fg_x, fg_y);
 
-    ff_draw(fg_typo.font, m->glyphs.data, m->glyphs.len,
-            (float *)g_cfg.global_projection);
+    ff_draw(m->glyphs.data, m->glyphs.len, (float *)g_cfg.global_projection, *g_style);
 
     return result;
 }
 
 bool btn_draw_with_icon(Btn *m, Icon icon, float x, float y) {
-    FF_Typo fg_typo = g_cfg.btn_typo;
     Rectangle bounds = {
         .x = x,
         .y = y,
@@ -109,10 +92,9 @@ bool btn_draw_with_icon(Btn *m, Icon icon, float x, float y) {
         .height = btn_height(m),
     };
 
-    bool hovering =
-        CheckCollisionPointRec(GetMousePosition(), bounds);
-    bool released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    bool result = hovering && released ? true : false;
+    bool hovering = CheckCollisionPointRec(GetMousePosition(), bounds);
+    bool act = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    bool result = hovering && act ? true : false;
 
     bool draw_bg = !(m->flags & BTN_FLAG_DONT_DRAW_BG);
     if (draw_bg) {
@@ -120,7 +102,7 @@ bool btn_draw_with_icon(Btn *m, Icon icon, float x, float y) {
         if (hovering) {
             target[0] += 6;
             target[1] += 4;
-            fg_typo.color = g_color[g_cfg.theme][COLOR_ROSEWATER];
+            // fg_typo.color = g_color[g_cfg.theme][COLOR_ROSEWATER];
         }
         motion_update(&m->motion, target, GetFrameTime());
         bounds.width += m->motion.position[0];
@@ -128,37 +110,26 @@ bool btn_draw_with_icon(Btn *m, Icon icon, float x, float y) {
         bounds.x -= m->motion.position[0] * .5f;
         bounds.y -= m->motion.position[1] * .5f;
 
-        float rad = bounds.width > bounds.height
-                        ? 2 * 8 / bounds.height
-                        : 2 * 8 / bounds.width;
-        DrawRectangleRounded(
-            bounds, rad, 6,
-            GetColor(g_color[g_cfg.theme][COLOR_SURFACE0]));
-        rlDrawRenderBatchActive();
+        DRAW_BG(bounds, 8.f, COLOR_SURFACE0);
     }
 
     Texture icon_tex = icon_get(icon);
     Rectangle icon_src = {0, 0, icon_tex.width, icon_tex.width};
-    Rectangle icon_dst = {
-        bounds.x + g_cfg.btn_pad_horz + m->motion.position[0] * .5,
-        bounds.y + g_cfg.btn_pad_vert + m->motion.position[1] * .5,
-        BTN_ICON_SIZE, BTN_ICON_SIZE};
+    Rectangle icon_dst = {bounds.x + g_cfg.btn_pad_horz + m->motion.position[0] * .5,
+                          bounds.y + g_cfg.btn_pad_vert + m->motion.position[1] * .5, BTN_ICON_SIZE,
+                          BTN_ICON_SIZE};
     Vector2 icon_origin = {0};
-    Color icon_col = GetColor(g_color[g_cfg.theme][COLOR_SKY]);
-    DrawTexturePro(icon_tex, icon_src, icon_dst, icon_origin, 0,
-                   icon_col);
+    Color icon_col = GET_RCOLOR(COLOR_SKY);
+    DrawTexturePro(icon_tex, icon_src, icon_dst, icon_origin, 0, icon_col);
 
     float icon_offset = g_cfg.btn_pad_horz * 2 + BTN_ICON_SIZE;
     bounds.width -= icon_offset;
     bounds.x += icon_offset;
-    float fg_x =
-        bounds.x + bounds.width * .5f - m->glyphs_width * .5f;
-    float fg_y =
-        bounds.y + bounds.height * .5f - m->glyphs_height * .5f;
+    float fg_x = bounds.x + bounds.width * .5f - m->glyphs_width * .5f;
+    float fg_y = bounds.y + bounds.height * .5f - m->glyphs_height * .5f;
     ff_set_glyphs_pos(m->glyphs.data, m->glyphs.len, fg_x, fg_y);
 
-    ff_draw(fg_typo.font, m->glyphs.data, m->glyphs.len,
-            (float *)g_cfg.global_projection);
+    ff_draw(m->glyphs.data, m->glyphs.len, (float *)g_cfg.global_projection, *g_style);
 
     return result;
 }

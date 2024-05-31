@@ -9,9 +9,7 @@ short g_layer = 0;
 
 void clip_init(void) { glEnable(GL_STENCIL_TEST); }
 
-void clip_end_frame(void) {
-    assert(g_layer == 0 && "unmatched clip_begin and clip_end");
-}
+void clip_end_frame(void) { assert(g_layer == 0 && "unmatched clip_begin and clip_end"); }
 
 void clip_begin_custom_shape(void) {
     assert(g_layer < 0xff && g_layer >= 0);
@@ -61,8 +59,7 @@ void clip_begin(float x, float y, float w, float h) {
     glStencilFunc(GL_EQUAL, g_layer, 0xFF);
 }
 
-void clip_begin_rounded(float x, float y, float w, float h,
-                        float rad) {
+void clip_begin_rounded(float x, float y, float w, float h, float rad) {
     assert(g_layer < 0xff && g_layer >= 0);
     rlDrawRenderBatchActive();
     g_layer += 1;

@@ -19,13 +19,10 @@ static void set_current_time_target_secs(Timing_Component *m) {
     switch (m->pomo) {
         case TC_POMO_STATE_FOCUS:
             m->current_time_target_secs =
-                min_to_sec(g_cfg.clock_focus_mins) +
-                g_cfg.clock_focus_secs;
+                min_to_sec(g_cfg.clock_focus_mins) + g_cfg.clock_focus_secs;
             break;
         case TC_POMO_STATE_REST:
-            m->current_time_target_secs =
-                min_to_sec(g_cfg.clock_rest_mins) +
-                g_cfg.clock_rest_secs;
+            m->current_time_target_secs = min_to_sec(g_cfg.clock_rest_mins) + g_cfg.clock_rest_secs;
             break;
     }
     m->chrono.secs_left = m->current_time_target_secs;
@@ -55,8 +52,8 @@ void timing_component_destroy(Timing_Component *m) {
     btn_destroy(&m->skip);
 }
 
-static void handle_buttons(Timing_Component *m, float lbtn_x,
-                           float lbtn_y, float rbtn_x, float rbtn_y) {
+static void handle_buttons(Timing_Component *m, float lbtn_x, float lbtn_y, float rbtn_x,
+                           float rbtn_y) {
     if (btn_draw(&m->interrupt, lbtn_x, lbtn_y)) {
         switch (m->state) {
             case TC_STATE_RUNNING: {
@@ -81,22 +78,16 @@ float timing_component_glyphs_width(Timing_Component *m) {
     char time_numbers[16] = {0};
     snprintf(time_numbers, 15, "%02lu:%02lu", mins, secs);
     size_t time_number_len = strlen(time_numbers);
-    return ff_measure_utf8(time_numbers, time_number_len,
-                           g_cfg.c_clock_typo.font,
-                           g_cfg.c_clock_typo.size, 1)
-        .width;
+    return ff_measure_utf8(time_numbers, time_number_len, g_cfg.bstyle).width;
 }
 
-void timing_component_draw_glyphs(Timing_Component *m, float x,
-                                  float y) {
+void timing_component_draw_glyphs(Timing_Component *m, float x, float y) {
     size_t mins = chrono_clock_mins(&m->chrono);
     size_t secs = chrono_clock_secs(&m->chrono);
     char time_numbers[16] = {0};
     snprintf(time_numbers, 15, "%02lu:%02lu", mins, secs);
     size_t time_number_len = strlen(time_numbers);
-    ff_draw_str8(time_numbers, time_number_len, x, y,
-                 (float *)g_cfg.global_projection, g_cfg.c_clock_typo,
-                 FF_FLAG_DEFAULT, 0);
+    ff_draw_str8(time_numbers, time_number_len, x, y, (float *)g_cfg.global_projection, g_cfg.bstyle);
 }
 
 // void timing_component_draw_note_glyphs(Timing_Component *m,
@@ -144,33 +135,27 @@ float timing_component_width(Timing_Component *m) {
     float rbtn_width = btn_width(&m->skip);
     float chrn_width = timing_component_glyphs_width(m);
     float width =
-        g_cfg.outer_gap * 2 +
-        fmaxf(lbtn_width + rbtn_width + g_cfg.inner_gap, chrn_width);
+        g_cfg.outer_gap * 6 + fmaxf(lbtn_width + rbtn_width + g_cfg.inner_gap, chrn_width);
     return width;
 }
 
 float timing_component_height(Timing_Component *m) {
     float lbtn_height = btn_height(&m->interrupt);
-    float chrn_height = g_cfg.c_clock_typo.size;
-    float height = g_cfg.outer_gap * 2 + g_cfg.inner_gap * 2 +
-                   lbtn_height + chrn_height;
+    float chrn_height = g_cfg.bstyle.typo.size;
+    float height = g_cfg.outer_gap * 2 + g_cfg.inner_gap * 2 + lbtn_height + chrn_height;
     return height;
 }
 
-TC_Return timing_component_draw(Timing_Component *m, float x,
-                                float y) {
+TC_Return timing_component_draw(Timing_Component *m, float x, float y) {
     TC_Return ret = {0};
 
     if (m->state == TC_STATE_RUNNING) {
         m->previous_chrono_secs_left = m->chrono.secs_left;
         Chrono_Stat stat = chrono_update(&m->chrono);
-        float delta =
-            m->previous_chrono_secs_left - m->chrono.secs_left;
+        float delta = m->previous_chrono_secs_left - m->chrono.secs_left;
         ret.spent_delta = fabs(delta);
-        float elapsed =
-            (float)m->current_time_target_secs - m->chrono.secs_left;
-        m->perc_done =
-            (float)elapsed / (float)m->current_time_target_secs;
+        float elapsed = (float)m->current_time_target_secs - m->chrono.secs_left;
+        m->perc_done = (float)elapsed / (float)m->current_time_target_secs;
         if (stat == CHRONO_DONE) on_chrono_done(m, &ret.finished);
     }
 
@@ -178,23 +163,17 @@ TC_Return timing_component_draw(Timing_Component *m, float x,
     float lbtn_height = btn_height(&m->interrupt);
     float rbtn_width = btn_width(&m->skip);
     float chrn_width = timing_component_glyphs_width(m);
-    float chrn_height = g_cfg.c_clock_typo.size;
+    float chrn_height = g_cfg.bstyle.typo.size;
 
     float width =
-        g_cfg.outer_gap * 2 +
-        fmaxf(lbtn_width + rbtn_width + g_cfg.inner_gap, chrn_width);
-    float height = g_cfg.outer_gap * 2 + g_cfg.inner_gap * 2 +
-                   lbtn_height + chrn_height;
-    float rad = height > width ? 2 * 24 / height : 2 * 24 / width;
-    Rectangle bg = {x,y,width,height};
-    DrawRectangleRounded(bg, rad, 3,
-                         GetColor(g_color[g_cfg.theme][COLOR_BASE]));
-    rlDrawRenderBatchActive();
+        g_cfg.outer_gap * 6 + fmaxf(lbtn_width + rbtn_width + g_cfg.inner_gap, chrn_width);
+    float height = g_cfg.outer_gap * 2 + g_cfg.inner_gap * 2 + lbtn_height + chrn_height;
+    float rad = RADIUS_TO_ROUNDNESS(g_cfg.bg_radius, height);
+    Rectangle bg = {x, y, width, height};
+    DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
 
-    float lbtn_x = x + width * .5f - lbtn_width * .5f -
-                   g_cfg.inner_gap * .5f - rbtn_width * .5f;
-    float rbtn_x = x + width * .5f - rbtn_width * .5f +
-                   g_cfg.inner_gap * .5f + lbtn_width * .5f;
+    float lbtn_x = x + width * .5f - lbtn_width * .5f - g_cfg.inner_gap * .5f - rbtn_width * .5f;
+    float rbtn_x = x + width * .5f - rbtn_width * .5f + g_cfg.inner_gap * .5f + lbtn_width * .5f;
 
     float chrn_x = x + width * .5f - chrn_width * .5f;
     float chrn_y = y + g_cfg.outer_gap;
@@ -207,9 +186,9 @@ TC_Return timing_component_draw(Timing_Component *m, float x,
     // timing_component_draw_note_glyphs(m, x + width * .55f,
     //                                   y + height - 20);
     float target[2] = {width * m->perc_done, 0};
-    clip_begin_rounded(bg.x,bg.y ,bg.width ,bg.height , rad);
+    clip_begin_rounded(bg.x, bg.y, bg.width, bg.height, rad);
     motion_update(&m->mo, target, GetFrameTime());
-    Color bar_col = GetColor(g_color[g_cfg.theme][COLOR_SKY]);
+    Color bar_col = GET_RCOLOR(COLOR_SKY);
     DrawRectangle(x, y + height - 10, m->mo.position[0], 10, bar_col);
     clip_end();
 

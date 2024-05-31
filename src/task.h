@@ -3,6 +3,7 @@
 
 #include "button.h"
 #include "check_btn.h"
+#include "tag.h"
 
 typedef unsigned short U8;
 
@@ -15,6 +16,7 @@ typedef struct {
     U8 done;
     bool complete;
     int db_id;
+    int tag_id;
 } Task;
 
 typedef enum {
@@ -28,5 +30,4 @@ Task task_create(void);
 void task_destroy(Task* m);
 void task_set_name(Task* m, C32* name, size_t len);
 float task_height(void);
-Task_Return_Flags task_draw(Task* m, float x, float y,
-                            float max_width);
+Task_Return_Flags task_draw(Task* m, float x, float y, float max_width);

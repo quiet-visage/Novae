@@ -7,8 +7,7 @@
 #define RADIUS 16.0f
 
 Check_Btn check_btn_create() {
-    Check_Btn ret = {.check_anim = motion_new(),
-                     .uncheck_anim = motion_new()};
+    Check_Btn ret = {.check_anim = motion_new(), .uncheck_anim = motion_new()};
     ret.uncheck_anim.position[0] = RADIUS;
     ret.uncheck_anim.position[1] = 0xff;
     ret.uncheck_anim.f = 1.8f;
@@ -18,16 +17,14 @@ Check_Btn check_btn_create() {
     return ret;
 }
 
-bool check_btn_draw(Check_Btn* m, bool* checked, float x, float y,
-                    Draw_Opts opts) {
+bool check_btn_draw(Check_Btn* m, bool* checked, float x, float y, Draw_Opts opts) {
     // return true if this has been clicked
     bool ret = false;
 
-    if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         Vector2 point = GetMousePosition();
         Vector2 center = {x, y};
-        if (opts & DRAW_ENABLE_MOUSE_INPUT &&
-            CheckCollisionPointCircle(point, center, RADIUS)) {
+        if (opts & DRAW_ENABLE_MOUSE_INPUT && CheckCollisionPointCircle(point, center, RADIUS)) {
             *checked = !(*checked);
             ret = true;
         }

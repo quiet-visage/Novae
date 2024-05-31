@@ -12,11 +12,15 @@
 #include "colors.h"
 #include "config.h"
 #include "db.h"
-#include "db_activity_map.h"
+#include "db_cache.h"
 
 #define IS_LEAP_YEAR(YEAR) (!(YEAR % 4))
 #define ACTIVITY_MAP_CAP 1024
 #define UPDATE_EVERY_SEC 1
+#define MONTH_ROWS 6
+#define MONTH_COLUMNS 7
+#define HEATMAP_COLUMNS 3
+#define HEATMAP_MONTH_GAP (g_cfg.inner_gap * .5f)
 
 typedef enum {
     MONTH_JAN,
@@ -49,6 +53,7 @@ typedef struct {
 } Hover_Data;
 
 float g_auto_update_chronometer = 1.0f;
+static FF_Style* g_style = &g_cfg.sstyle;
 
 static const char* get_month_name(Month month) {
     switch (month) {
@@ -71,9 +76,8 @@ static const char* get_month_name(Month month) {
 static inline Date get_current_date(void) {
     time_t now = time(0);
     struct tm* local_tm = localtime(&now);
-    Date date = {.day = local_tm->tm_mday,
-                 .month = local_tm->tm_mon,
-                 .year = local_tm->tm_year + 1900};
+    Date date = {
+        .day = local_tm->tm_mday, .month = local_tm->tm_mon, .year = local_tm->tm_year + 1900};
     return date;
 }
 
@@ -121,17 +125,15 @@ static bool is_today(int day, int month, int year) {
     time_t now;
     time(&now);
     struct tm* now_local = localtime(&now);
-    return (now_local->tm_mday == day) &&
-           (now_local->tm_mon == month) &&
+    return (now_local->tm_mday == day) && (now_local->tm_mon == month) &&
            (now_local->tm_year == (year - 1900));
 }
 
 #define PAD (g_cfg.inner_gap * .25f)
 #define SIZE (6.0f)
 
-#define COLOR_LERP(A, B, P)                        \
-    ((Color){Lerp(A.r, B.r, P), Lerp(A.g, B.g, P), \
-             Lerp(A.b, B.b, P), Lerp(A.a, B.a, P)})
+#define COLOR_LERP(A, B, P) \
+    ((Color){Lerp(A.r, B.r, P), Lerp(A.g, B.g, P), Lerp(A.b, B.b, P), Lerp(A.a, B.a, P)})
 static void draw_month(float ix, float iy, int month, int year) {
     float x = ix;
     float y = iy;
@@ -161,21 +163,20 @@ static void draw_month(float ix, float iy, int month, int year) {
     size_t hover_data_len = 0;
 
     for (size_t i = 0; i < recs_count; i += 1) {
-        Activity* date_activity =
-            db_activity_get((Date){year, month, i});
-        Color color = GetColor(g_color[g_cfg.theme][COLOR_SURFACE0]);
+        Activity* date_activity = db_cache_get_activity((Date){year, month, i});
+        Color color = GET_RCOLOR(COLOR_SURFACE0);
         if (date_activity && date_activity->focus) {
-            Color cold = GetColor(g_color[g_cfg.theme][COLOR_SKY]);
+            Color cold = GET_RCOLOR(COLOR_SKY);
             cold.a = 0x66;
-            Color hot = GetColor(g_color[g_cfg.theme][COLOR_SKY]);
-            float lerp_value = Clamp(
-                date_activity->focus / db_activity_get_max_focus(),
-                0.0f, 1.0f);
+            Color hot = GET_RCOLOR(COLOR_SKY);
+            float lerp_value =
+                Clamp(date_activity->focus / db_cache_get_max_diligence(), 0.0f, 1.0f);
             color = COLOR_LERP(cold, hot, lerp_value);
             hover_data[hover_data_len].act = date_activity;
             hover_data[hover_data_len].rec_idx = i;
             hover_data_len += 1;
         }
+        // DrawCircle(recs[i].x, recs[i].y, 4.0f, color);
         DrawRectangleRec(recs[i], color);
     }
 
@@ -187,88 +188,69 @@ static void draw_month(float ix, float iy, int month, int year) {
         if (!hovering) continue;
 
         char thing[32] = {0};
-        snprintf(thing, 32, "focus: %d mins, %.1f secs",
-                 (int)(data->act->focus / 60.f),
+        snprintf(thing, 32, "focus: %d mins, %.1f secs", (int)(data->act->focus / 60.f),
                  fmodf(data->act->focus, 60.f));
-        float fw =
-            ff_measure_utf8(thing, strlen(thing), g_cfg.btn_typo.font,
-                            g_cfg.btn_typo.size, 0)
-                .width;
-        float fh = g_cfg.btn_typo.size;
+        float fw = ff_measure_utf8(thing, strlen(thing), *g_style).width;
+        float fh = g_style->typo.size;
 
-        DrawRectangle(mouse.x, mouse.y, fw + g_cfg.inner_gap * 2,
-                      fh + g_cfg.inner_gap * 2,
-                      GetColor(g_color[g_cfg.theme][COLOR_SURFACE0]));
+        DrawRectangle(mouse.x, mouse.y, fw + g_cfg.inner_gap * 2, fh + g_cfg.inner_gap * 2,
+                      GET_RCOLOR(COLOR_SURFACE0));
         rlDrawRenderBatchActive();
 
-        ff_draw_str8(thing, strlen(thing), mouse.x + g_cfg.inner_gap,
-                     mouse.y + g_cfg.btn_typo.size,
-                     (float*)g_cfg.global_projection, g_cfg.btn_typo,
-                     FF_FLAG_DEFAULT, 0);
+        ff_draw_str8(thing, strlen(thing), mouse.x + g_cfg.inner_gap, mouse.y + g_style->typo.size,
+                     (float*)g_cfg.global_projection, *g_style);
     }
 }
 
-void draw_month_name(Month month, float x, float month_w, float y) {
-    float ny =
-        y - g_cfg.btn_typo.size - g_cfg.inner_gap * .5f;  // TODO
+static void draw_month_name(Month month, float x, float month_w, float y) {
     const char* name = get_month_name(month);
     size_t name_len = strlen(name);
-    float nx =
-        CENTER(x, month_w,
-               ff_measure_utf8(name, name_len, g_cfg.btn_typo.font,
-                               g_cfg.btn_typo.size, 0)
-                   .width);
-    ff_draw_str8(name, strlen(name), nx, ny,
-                 (float*)g_cfg.global_projection, g_cfg.btn_typo, 0,
-                 0);
+    float nx = CENTER(x, month_w, ff_measure_utf8(name, name_len, *g_style).width);
+    ff_draw_str8(name, strlen(name), nx, y, (float*)g_cfg.global_projection, *g_style);
 }
 
-void heatmap_draw() {
-    float month_w = (SIZE + PAD) * 6;
-    float month_h = (SIZE + PAD) * 7;
+inline static float month_max_width(void) { return (SIZE + PAD) * MONTH_ROWS; }
+inline static float month_name_height(void) { return (g_style->typo.size + HEATMAP_MONTH_GAP); }
+inline static float month_max_height(void) {
+    return (SIZE + PAD) * MONTH_COLUMNS + month_name_height();
+}
+inline float heatmap_max_width(void) {
+    return month_max_width() * HEATMAP_COLUMNS + HEATMAP_MONTH_GAP * (HEATMAP_COLUMNS - 1);
+}
 
-    float ix = (month_w + g_cfg.inner_gap * .5f) * 3;
-    float iy = (month_h + g_cfg.inner_gap * .5f) * 2;
+static void draw_month_row(float x, float y, size_t count, int end_year, int end_month) {
+    float month_w = month_max_width();
+    x += heatmap_max_width() - month_w;
+    float name_height = month_name_height();
+    for (size_t i = 0; i < count; i += 1) {
+        if (end_month < 0) {
+            end_year -= i;
+            end_month = MONTH_DEC;
+        }
+
+        draw_month_name(end_month, x, month_w, y);
+        draw_month(x, y + name_height, end_month, end_year);
+
+        x -= month_w + HEATMAP_MONTH_GAP;
+        end_month -= 1;
+    }
+}
+
+inline float heatmap_max_height(void) { return month_max_height() + g_cfg.outer_gap * 2; }
+
+void heatmap_draw(float x, float y) {
+    float month_h = month_max_height();
+
+    float max_w = heatmap_max_width();
+    Rectangle bg = {.x = x,
+                    .y = y,
+                    .width = max_w + g_cfg.outer_gap * 2,
+                    .height = month_h + g_cfg.outer_gap * 2};
+    DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
+
+    x = x + g_cfg.outer_gap;
+    y = y + g_cfg.outer_gap;
 
     Date display_date = get_current_date();
-    int target_month = display_date.month;
-
-    int months_on_left = 1;
-    int months_on_right = 1;
-
-    float x = ix, y = iy;
-
-    int right_year = display_date.year;
-    int right_month = display_date.month;
-    for (size_t i = 0; i < months_on_right; i += 1) {
-        right_month += 1;
-        if (right_month > MONTH_DEC) {
-            right_year += i;
-            right_month = MONTH_JAN;
-        }
-
-        draw_month(x, y, right_month, right_year);
-        draw_month_name(right_month, x, month_w, y);
-
-        x -= month_w + g_cfg.inner_gap * .5f;
-    }
-
-    draw_month(x, y, target_month, display_date.year);
-    draw_month_name(target_month, x, month_w, y);
-    x -= month_w + g_cfg.inner_gap * .5f;
-
-    int left_year = display_date.year;
-    int left_month = display_date.month;
-    for (size_t i = 0; i < months_on_left; i += 1) {
-        left_month -= 1;
-        if (left_month < 0) {
-            left_year -= i;
-            left_month = MONTH_DEC;
-        }
-
-        draw_month(x, y, left_month, left_year);
-        draw_month_name(left_month, x, month_w, y);
-
-        x -= month_w + g_cfg.inner_gap * .5f;
-    }
+    draw_month_row(x, y, 3, display_date.year, display_date.month);
 }

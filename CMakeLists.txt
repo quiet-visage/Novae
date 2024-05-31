@@ -15,7 +15,7 @@ set(CMAKE_EXE_LINKER_FLAGS_SANITIZE
           FORCE)
 
 set(CMAKE_C_FLAGS_Profile
-    "-O2 -pg"
+    "-pg"
     CACHE STRING "Flags used by the C compiler during profile builds." FORCE)
 set(CMAKE_EXE_LINKER_FLAGS_Profile
     "-pg"
@@ -23,12 +23,15 @@ set(CMAKE_EXE_LINKER_FLAGS_Profile
           FORCE)
 
 message(
-  "* build type options are : None Debug Release RelWithDebInfo MinSizeRel Sanitize"
+  "* build type options are : None Debug Release RelWithDebInfo MinSizeRel Sanitize Profile"
 )
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
+
+message("* build type is : ${CMAKE_BUILD_TYPE}")
+
 
 if(CMAKE_BUILD_TYPE STREQUAL "Sanitize")
   target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g3 -fsanitize=address)

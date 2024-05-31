@@ -1,5 +1,7 @@
 #pragma once
 
+#include <raylib.h>
+
 typedef enum {
     THEME_CATPUCCIN_LATTE,
     THEME_CATPUCCIN_FRAPPE,
@@ -39,3 +41,5 @@ typedef enum {
 } Color_Name;
 
 extern int g_color[THEME_COUNT][COLOR_COUNT];
+extern Color g_rcolor[THEME_COUNT][COLOR_COUNT];
+void color_init(void);

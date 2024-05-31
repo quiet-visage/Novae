@@ -1,10 +1,10 @@
+#include <assert.h>
 #include <fieldfusion.h>
 #include <iconv.h>
 #include <math.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <wchar.h>
-#include <assert.h>
 
 #include "code_map.h"
 #include "fpack_map.h"
@@ -322,6 +322,15 @@ void ff_initialize(const char *sl_version) {
     g_fonts = fpack_map_create();
     ff_new_load_font_from_memory(g_default_font, g_default_font_len,
                                  FF_DEFAULT_FONT_CONFIG);
+}
+
+FF_Style ff_style_create(void) {
+    FF_Style result = {0};
+    result.typo.size = 12.f;
+    result.typo.color = 0xffffffff;
+    result.attributes = ff_get_default_attributes();
+    result.flags = FF_FLAG_DEFAULT;
+    return result;
 }
 
 FF_Font_Id ff_new_load_font_from_memory(const unsigned char *bytes,
@@ -750,9 +759,10 @@ int ff_gen_glyphs(const FF_Font_Id font, const C32 *codepoints,
     return retval;
 }
 
-void ff_draw(FF_Font_Id font, const FF_Glyph *glyphs,
-             ulong glyphs_len, const float *projection) {
-    FF_Font_Texture_Pack *fpack = fpack_map_get(&g_fonts, font);
+void ff_draw(const FF_Glyph *glyphs, ulong glyphs_len,
+             const float *projection, FF_Style style) {
+    FF_Font_Texture_Pack *fpack =
+        fpack_map_get(&g_fonts, style.typo.font);
 
     GLuint glyph_buffer;
     GLuint vao;
@@ -885,26 +895,22 @@ size_t ff_utf32_to_utf8(char *dest, const C32 *src,
 }
 
 FF_Dimensions ff_print_utf8(FF_Glyph *glyphs, size_t *out_len,
-                            const char *str, size_t str_len,
-                            FF_Typo typo, float x, float y,
-                            FF_Print_Flag flags,
-                            FF_Attr *optional_attrs) {
+                            const char *str, size_t str_len, float x,
+                            float y, FF_Style style) {
     C32 str32[str_len];
     ff_utf8_to_utf32(str32, str, str_len);
-    return ff_print_utf32(glyphs, out_len, str32, str_len, typo, x, y,
-                          flags, optional_attrs);
+    return ff_print_utf32(glyphs, out_len, str32, str_len, x, y,
+                          style);
 }
 
 FF_Dimensions ff_print_utf32(FF_Glyph *glyphs, size_t *out_len,
-                             const C32 *str, size_t str_len,
-                             FF_Typo typo, float x, float y,
-                             FF_Print_Flag flags,
-                             FF_Attr *optional_attrs) {
-    FF_Attr attrs = optional_attrs ? *optional_attrs
-                                   : ff_get_default_attributes();
-    FF_Font_Texture_Pack *fpack = fpack_map_get(&g_fonts, typo.font);
+                             const C32 *str, size_t str_len, float x,
+                             float y, FF_Style style) {
+    FF_Dimensions result = {0};
+    FF_Font_Texture_Pack *fpack =
+        fpack_map_get(&g_fonts, style.typo.font);
     float pos0_x = x;
-    float pos0_y = y + typo.size;
+    float pos0_y = y + style.typo.size;
 
     for (size_t i = 0; i < str_len; i++) {
         C32 codepoint = str[i];
@@ -912,7 +918,7 @@ FF_Dimensions ff_print_utf32(FF_Glyph *glyphs, size_t *out_len,
         FF_Map_Item *idx =
             ff_map_get(&fpack->font.character_index, codepoint);
         if (!idx) {
-            ff_gen_glyphs(typo.font, &codepoint, 1);
+            ff_gen_glyphs(style.typo.font, &codepoint, 1);
             idx = ff_map_get(&fpack->font.character_index, codepoint);
             if (!idx) {
                 codepoint = 0x25a1;
@@ -924,7 +930,7 @@ FF_Dimensions ff_print_utf32(FF_Glyph *glyphs, size_t *out_len,
 
         FT_Vector kerning = {0};
         const bool kerning_is_viable =
-            (flags & FF_FLAG_ENABLE_KERNING) &&
+            (style.flags & FF_FLAG_ENABLE_KERNING) &&
             FT_HAS_KERNING(fpack->font.face) && (i > 0);
         if (kerning_is_viable) {
             C32 previous_character = str[i - 1];
@@ -944,52 +950,57 @@ FF_Dimensions ff_print_utf32(FF_Glyph *glyphs, size_t *out_len,
             FF_Glyph *new_glyph = &glyphs[i];
             new_glyph->position.x = pos0_x;
             new_glyph->position.y = pos0_y;
-            new_glyph->color = typo.color;
+            new_glyph->color = style.typo.color;
             new_glyph->codepoint = idx->code_index;
-            new_glyph->size = typo.size;
-            new_glyph->attrs = attrs;
+            new_glyph->size = style.typo.size;
+            new_glyph->attrs = style.attributes;
         }
 
         float y_adv = (idx->advance[1] + kerning.y) *
-                      (typo.size * g_dpi[0] / 72.0f) /
+                      (style.typo.size * g_dpi[0] / 72.0f) /
                       fpack->font.face->units_per_EM;
         float x_adv = (idx->advance[0] + kerning.x) *
-                      (typo.size * g_dpi[0] / 72.0f) /
+                      (style.typo.size * g_dpi[0] / 72.0f) /
                       fpack->font.face->units_per_EM;
         if (is_tab) x_adv *= 4;
 
-        if (flags & FF_FLAG_PRINT_VERTICALLY) {
+        if (style.flags & FF_FLAG_PRINT_VERTICALLY) {
             pos0_y += y_adv;
+            result.height += y_adv;
+            result.width = fmaxf(result.width, x_adv);
         } else {
             pos0_x += x_adv;
+            result.width += x_adv;
+            result.height = fmaxf(result.height, x_adv);
         }
     }
 
     if (out_len) *out_len += str_len;
-    return (FF_Dimensions){.width=pos0_x,.height=typo.size};
+    return result;
 }
 
-inline FF_Dimensions ff_print_utf32_vec(
-    FF_Glyph_Vec *v, const C32 *str, size_t str_len, FF_Typo typo,
-    float x, float y, FF_Print_Flag flags, FF_Attr *optional_attrs) {
+inline FF_Dimensions ff_print_utf32_vec(FF_Glyph_Vec *v,
+                                        const C32 *str,
+                                        size_t str_len, float x,
+                                        float y, FF_Style style) {
     ff_glyphs_vec_prealloc(v, str_len);
-    return ff_print_utf32(&v->data[v->len], &v->len, str, str_len,
-                          typo, x, y, flags, optional_attrs);
+    return ff_print_utf32(&v->data[v->len], &v->len, str, str_len, x,
+                          y, style);
 }
 
-inline FF_Dimensions ff_print_utf8_vec(
-    FF_Glyph_Vec *v, const char *str, size_t str_len, FF_Typo typo,
-    float x, float y, FF_Print_Flag flags, FF_Attr *optional_attrs) {
+inline FF_Dimensions ff_print_utf8_vec(FF_Glyph_Vec *v,
+                                       const char *str,
+                                       size_t str_len, float x,
+                                       float y, FF_Style style) {
     ff_glyphs_vec_prealloc(v, str_len);
-    return ff_print_utf8(&v->data[v->len], &v->len, str, str_len,
-                         typo, x, y, flags, optional_attrs);
+    return ff_print_utf8(&v->data[v->len], &v->len, str, str_len, x,
+                         y, style);
 }
 
-static FF_Dimensions ff_measure(const FF_Font_Id font, const C32 *str,
-                                size_t str_len, const float size,
-                                const bool with_kerning) {
-    FF_Font_Texture_Pack *fpack = fpack_map_get(&g_fonts, font);
-
+static FF_Dimensions ff_measure(const C32 *str, size_t str_len,
+                                FF_Style style) {
+    FF_Font_Texture_Pack *fpack =
+        fpack_map_get(&g_fonts, style.typo.font);
     FF_Dimensions result = {0};
 
     for (size_t i = 0; i < str_len; i++) {
@@ -998,12 +1009,13 @@ static FF_Dimensions ff_measure(const FF_Font_Id font, const C32 *str,
         FF_Map_Item *idx =
             ff_map_get(&fpack->font.character_index, codepoint);
         if (!idx) {
-            ff_gen_glyphs(font, &codepoint, 1);
+            ff_gen_glyphs(style.typo.font, &codepoint, 1);
             idx = ff_map_get(&fpack->font.character_index, codepoint);
             assert(idx);
         }
 
         FT_Vector kerning = {0};
+        bool with_kerning = style.flags & FF_FLAG_ENABLE_KERNING;
         const bool should_get_kerning =
             with_kerning && FT_HAS_KERNING(fpack->font.face) &&
             (i > 0);
@@ -1018,11 +1030,11 @@ static FF_Dimensions ff_measure(const FF_Font_Id font, const C32 *str,
         }
 
         float height = (idx->advance[1] + kerning.y) *
-                       (size * g_dpi[1] / 72.0f) /
+                       (style.typo.size * g_dpi[1] / 72.0f) /
                        fpack->font.face->units_per_EM;
         result.height = fmax(result.height, height);
         float x_adv = (idx->advance[0] + kerning.x) *
-                      (size * g_dpi[0] / 72.0f) /
+                      (style.typo.size * g_dpi[0] / 72.0f) /
                       fpack->font.face->units_per_EM;
         if (codepoint == L'\t') x_adv *= 4;
         result.width += x_adv;
@@ -1031,38 +1043,31 @@ static FF_Dimensions ff_measure(const FF_Font_Id font, const C32 *str,
     return result;
 }
 
-FF_Dimensions ff_draw_str32(const C32 *str, size_t len, float x, float y,
-                   float *projection, FF_Typo typo,
-                   FF_Print_Flag flags, FF_Attr *optional_attrs) {
+void ff_draw_str32(const C32 *str, size_t len, float x, float y,
+                   float *projection, FF_Style style) {
     FF_Glyph glyphs[len];
-    FF_Dimensions ret = ff_print_utf32(glyphs, 0, str, len, typo, x, y, flags,
-                   optional_attrs);
-    ff_draw(typo.font, glyphs, len, projection);
-    return ret;
+    ff_print_utf32(glyphs, 0, str, len, x, y, style);
+    ff_draw(glyphs, len, projection, style);
 }
 
 void ff_draw_str8(const char *str, size_t len, float x, float y,
-                  float *projection, FF_Typo typo,
-                  FF_Print_Flag flags, FF_Attr *optional_attrs) {
+                  float *projection, FF_Style style) {
     FF_Glyph glyphs[len];
-    ff_print_utf8(glyphs, 0, str, len, typo, x, y, flags,
-                   optional_attrs);
-    ff_draw(typo.font, glyphs, len, projection);
+    ff_print_utf8(glyphs, 0, str, len, x, y, style);
+    ff_draw(glyphs, len, projection, style);
 }
 
 FF_Dimensions ff_measure_utf32(const C32 *str, size_t str_len,
-                               FF_Font_Id font, float size,
-                               bool with_kerning) {
-    return ff_measure(font, str, str_len, size, with_kerning);
+                               FF_Style style) {
+    return ff_measure(str, str_len, style);
 }
 
 FF_Dimensions ff_measure_utf8(const char *str, size_t str_len,
-                              FF_Font_Id font, float size,
-                              bool with_kerning) {
+                              FF_Style style) {
     C32 str32[str_len];
     ff_utf8_to_utf32(str32, str, str_len);
 
-    return ff_measure(font, str32, str_len, size, with_kerning);
+    return ff_measure(str32, str_len, style);
 }
 
 void ff_set_glyphs_pos(FF_Glyph *glyphs, size_t count, float x,
