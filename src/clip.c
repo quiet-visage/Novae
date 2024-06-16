@@ -74,7 +74,7 @@ void clip_begin_rounded(float x, float y, float w, float h, float rad) {
     }
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    DrawRectangleRounded((Rectangle){x, y, w, h}, rad, 32, WHITE);
+    DrawRectangleRounded((Rectangle){x, y, w, h}, rad, 24, WHITE);
     rlDrawRenderBatchActive();
 
     glStencilMask(0x00);

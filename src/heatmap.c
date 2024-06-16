@@ -193,7 +193,7 @@ static void draw_month(float ix, float iy, int month, int year) {
         float fw = ff_measure_utf8(thing, strlen(thing), *g_style).width;
         float fh = g_style->typo.size;
 
-        DrawRectangle(mouse.x, mouse.y, fw + g_cfg.inner_gap * 2, fh + g_cfg.inner_gap * 2,
+        DrawRectangle(mouse.x, mouse.y, fw + g_cfg.inner_gap2, fh + g_cfg.inner_gap2,
                       GET_RCOLOR(COLOR_SURFACE0));
         rlDrawRenderBatchActive();
 
@@ -236,16 +236,14 @@ static void draw_month_row(float x, float y, size_t count, int end_year, int end
     }
 }
 
-inline float heatmap_max_height(void) { return month_max_height() + g_cfg.outer_gap * 2; }
+inline float heatmap_max_height(void) { return month_max_height() + g_cfg.outer_gap2; }
 
 void heatmap_draw(float x, float y) {
     float month_h = month_max_height();
 
     float max_w = heatmap_max_width();
-    Rectangle bg = {.x = x,
-                    .y = y,
-                    .width = max_w + g_cfg.outer_gap * 2,
-                    .height = month_h + g_cfg.outer_gap * 2};
+    Rectangle bg = {
+        .x = x, .y = y, .width = max_w + g_cfg.outer_gap2, .height = month_h + g_cfg.outer_gap2};
     DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
 
     x = x + g_cfg.outer_gap;

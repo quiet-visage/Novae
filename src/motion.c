@@ -9,8 +9,8 @@
 
 Motion motion_new() {
     Motion result = {0};
-    result.f = 1.0f;
-    result.z = 0.5f;
+    result.f = 1.5f;
+    result.z = 1.0f;
     result.r = 2.0f;
     return result;
 }

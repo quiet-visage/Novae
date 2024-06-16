@@ -47,12 +47,12 @@ size_t db_get_tag_count(void);
 void db_get_tags(Tag* out);  // allocates memory for tag.name, user needs to free it
 
 void db_print_table(void);
-Task_Id db_create_task(const char* name, int done, int left);
+Task_Id db_create_task(const char* name, int done, int left, size_t tag_id);
 void db_incr_done(int id);
 void db_set_completed(int id);
 void db_set_done(int id, int val);
 size_t db_get_todays_task_count(void);
-void db_get_todays_task(Task* out, size_t cap);
+void db_get_todays_task(Task* out);
 size_t db_get_all_time_activity_count(void);
 void db_get_all_time_activity(Time_Activity* tas);
 Activity db_get_today_activity(void);

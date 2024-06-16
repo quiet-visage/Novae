@@ -1,5 +1,6 @@
 #include "time_activity_graph.h"
 
+#include <assert.h>
 #include <math.h>
 #include <raylib.h>
 #include <rlgl.h>
@@ -20,8 +21,7 @@
 #define Y_AXIS_SCALE_COUNT 4
 #define X_AXIS_SCALE_COUNT 3
 
-#define MAX(x, y) (x > y ? x : y)
-#define MIN(x, y) (x < y ? x : y)
+static_assert(X_AXIS_SCALE_COUNT > 1);
 
 static FF_Style* g_style = &g_cfg.estyle;
 static Motion g_this_day_motion = {0};
@@ -70,12 +70,19 @@ static void draw_y_axis(float* y_axis_text_width, float y_axis_scale_max, float 
 static void draw_x_axis(float x, float y, float graph_width, Time_Activity* activity,
                         size_t activity_count) {
     size_t sample_count = MIN(activity_count, GRAPH_SAMPLE_SIZE);
-    for (size_t i = X_AXIS_SCALE_COUNT + 1; i-- > 0;) {
-        float perc = (float)i / X_AXIS_SCALE_COUNT;
+    if (sample_count < 2) sample_count = 2;
+    int scale_count = X_AXIS_SCALE_COUNT;
+    if (sample_count <= scale_count) scale_count = sample_count - 1;
+    // assert(sample_count >= 2);
+
+    for (size_t i = scale_count + 1; i-- > 0;) {
+        float perc = (float)i / scale_count;
         float tx = x + graph_width * perc;
 
-        Date sample_date = activity[(size_t)(activity_count - sample_count * (1 - perc))].date;
-        size_t days_ago = i == X_AXIS_SCALE_COUNT ? 0 : get_days_ago(sample_date);
+        size_t index_offset = sample_count * (1 - perc);
+        if (index_offset > activity_count) index_offset = activity_count;
+        Date sample_date = activity[(size_t)(activity_count - index_offset)].date;
+        size_t days_ago = i == scale_count ? 0 : get_days_ago(sample_date);
 
         char text[32] = {0};
         size_t text_len = snprintf(text, 32, days_ago ? "-%ld" : "%ld", days_ago);
@@ -141,8 +148,8 @@ static void get_points(float x, float y, float graph_w, float graph_h, float y_s
     }
 }
 
-inline float time_activity_graph_max_width(void) { return GRAPH_WIDTH + g_cfg.outer_gap * 2; }
-inline float time_activity_graph_max_height(void) { return GRAPH_HEIGHT + g_cfg.outer_gap * 2; }
+inline float time_activity_graph_max_width(void) { return GRAPH_WIDTH + g_cfg.outer_gap2; }
+inline float time_activity_graph_max_height(void) { return GRAPH_HEIGHT + g_cfg.outer_gap2; }
 
 void time_activity_graph_draw(float x, float y) {
     Rectangle bg = {.x = x,

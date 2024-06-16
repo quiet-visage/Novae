@@ -8,13 +8,11 @@
 #include "colors.h"
 #include "config.h"
 
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
-
 static FF_Style *g_time_style = &g_cfg.bstyle;
 static FF_Style *g_side_style = &g_cfg.mstyle;
 
 float date_time_max_height(void) {
-    return g_cfg.inner_gap + g_time_style->typo.size + g_cfg.outer_gap * 2;
+    return g_cfg.inner_gap + g_time_style->typo.size + g_cfg.outer_gap2;
 }
 
 void date_time_view(float x, float y, float timer_secs) {
@@ -51,8 +49,8 @@ void date_time_view(float x, float y, float timer_secs) {
     Rectangle bg = {
         .x = x,
         .y = y,
-        .width = timer_str_w + g_cfg.inner_gap + g_cfg.outer_gap * 2,
-        .height = g_cfg.inner_gap + g_time_style->typo.size + g_cfg.outer_gap * 2,
+        .width = timer_str_w + g_cfg.inner_gap + g_cfg.outer_gap2,
+        .height = g_cfg.inner_gap + g_time_style->typo.size + g_cfg.outer_gap2,
     };
 
     DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
@@ -60,7 +58,7 @@ void date_time_view(float x, float y, float timer_secs) {
     Rectangle bgr1 = {
         .x = bg.x + bg.width + g_cfg.inner_gap,
         .y = y,
-        .width = MAX(week_day_str_w, month_str_w) + g_cfg.outer_gap * 2,
+        .width = MAX(week_day_str_w, month_str_w) + g_cfg.outer_gap2,
         .height = bg.height,
     };
     DRAW_BG(bgr1, g_cfg.bg_radius, COLOR_BASE);

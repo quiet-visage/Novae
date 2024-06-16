@@ -128,10 +128,10 @@ float pchart_max_width(void) {
     float max_str_w = ff_measure_utf8(max_str, sizeof(max_str), *g_style).width;
     float max_line_w = max_str_w * LINE_WIDTH_SCALE;
     return (PCHART_IN_RAD + PCHART_OUT_RAD + INDICATOR_DIAG_WIDTH + max_line_w) * 2 +
-           g_cfg.outer_gap * 2;
+           g_cfg.outer_gap2;
 }
 
-float pchart_max_height(void) { return TOTAL_RADIUS * 2 + g_cfg.outer_gap * 2; }
+float pchart_max_height(void) { return TOTAL_RADIUS * 2 + g_cfg.outer_gap2; }
 
 void pchart_draw(float x, float y) {
     update_percs();

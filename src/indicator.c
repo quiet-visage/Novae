@@ -1,6 +1,7 @@
 #include "indicator.h"
 
 #include "clip.h"
+#include "config.h"
 #include "raylib.h"
 
 inline Indicator indicator_create(void) { return (Indicator){0}; }
@@ -45,8 +46,6 @@ void indicator_calculate_pivoted(Indicator* m, float x, float y, float pivot_x, 
     m->line_end.y = m->diag_end.y;
 }
 
-#define MIN(x, y) (x < y ? x : y)
-#define MAX(x, y) (x > y ? x : y)
 void indicator_draw_faded(Indicator* m, Color base) {
     clip_begin_custom_shape();
     DrawLineEx(m->diag_begin, m->diag_end, 1.0f, WHITE);

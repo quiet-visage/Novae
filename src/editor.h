@@ -13,6 +13,7 @@ typedef enum {
 
 typedef struct {
     Editor_State state;
+    char* placeholder;
     int flags;
     size_t sel_from;
     size_t sel_to;
@@ -21,6 +22,8 @@ typedef struct {
 } Editor;
 
 Editor editor_create(void);
+void editor_destroy(Editor* m);
 bool editor_handle_input(Editor* m, C32_Vec* buf);
 void editor_clear(Editor* m);
+void editor_set_placeholder(Editor* m, char* str);
 void editor_select(Editor* m, size_t from, size_t to);

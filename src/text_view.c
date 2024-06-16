@@ -6,7 +6,6 @@
 #include "fieldfusion.h"
 #include "motion.h"
 
-#define MIN(X, Y) ((X < Y) ? X : Y)
 void horizontal_scroll(const C32* buf, size_t len, size_t curs, float* target_scroll,
                        FF_Style style, float max_w) {
     if (!len) return;

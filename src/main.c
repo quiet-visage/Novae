@@ -1,9 +1,9 @@
 /*
-FIX: time activity graph shows too many indicators
-on the x axis, it shows 4 even when the graph has only 2
-data points
-FIX: rename max_width functions to min_width functions
-because that's what it should be
+TODO: fix task indicator
+TODO: search implementation
+TODO: alpha inherit and smooth in / out
+TODO: Tag selector on tag creator
+TODO: move side button to separate implementation
 */
 
 #include <assert.h>
@@ -25,6 +25,7 @@ because that's what it should be
 #include "pchart.h"
 #include "shader.h"
 #include "streak.h"
+#include "tag_selection.h"
 #include "task.h"
 #include "task_creator.h"
 #include "task_list.h"
@@ -41,6 +42,8 @@ EMBED_FILE(g_nova_mono_bytes, resources/fonts/NovaMono-Regular.ttf);
 // clang-format on
 #define BATCH_FLUSH_DELAY (0.75f)
 
+typedef enum { STATE_NORMAL, STATE_TAG_SELECTION } State;
+
 extern const unsigned char g_nova_mono_bytes[];
 extern const int g_nova_mono_bytes_len;
 size_t g_nova_mono_font = {0};
@@ -48,8 +51,11 @@ Timing_Component g_timing_comp = {0};
 Task_Creator g_task_creator = {0};
 Task_List g_task_list = {0};
 Task g_new_task = {0};
+Task g_default_task = {0};
 size_t g_tasks_count = {0};
 float g_batch_flush_delay = BATCH_FLUSH_DELAY;
+Tag_Selection g_tag_selection = {0};
+State g_state = 0;
 
 int cmp_t(const void *a, const void *b) {
     const Task *ap = a;
@@ -63,15 +69,20 @@ int cmp_t0(const void *a, const void *b) {
 }
 
 void main_init() {
+    config_init();
     color_init();
+
     db_init();
     db_cache_init();
-    config_init();
+    db_cache_sync_tags();
+
     SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_ALWAYS_RUN);
     InitWindow(g_cfg.window_width, g_cfg.window_height, g_cfg.window_name);
     InitAudioDevice();
-    ff_initialize("430");
     SetTargetFPS(60);
+    SetExitKey(0);
+
+    ff_initialize("430");
     icon_init();
     clip_init();
     streak_init();
@@ -96,26 +107,36 @@ void main_init() {
     g_task_creator = task_creator_create();
     g_task_list = task_list_create();
     g_new_task = task_create();
+
     size_t todays_task_count = db_get_todays_task_count();
     timing_component_create(&g_timing_comp);
     if (todays_task_count) {
-        task_list_prealloc(&g_task_list, todays_task_count);
-        db_get_todays_task(g_task_list.tasks.data, 0);
-        g_task_list.tasks.len += todays_task_count;
-        qsort(g_task_list.tasks.data, g_task_list.tasks.len, sizeof(g_task_list.tasks.data[0]),
-              cmp_t);
+        Task *tasks = calloc(todays_task_count, sizeof(Task));
+        db_get_todays_task(tasks);
+        for (size_t i = 0; i < todays_task_count; i += 1) {
+            if (db_is_default_task(tasks[i].db_id)) {
+                g_default_task = tasks[i];
+            } else {
+                task_list_push(&g_task_list, tasks[i]);
+            }
+        }
+        free(tasks);
     }
+
+    g_tag_selection = tag_selection_create();
 };
 
 void main_terminate() {
     db_cache_terminate();
     db_terminate();
     ff_terminate();
+    tag_selection_destroy(&g_tag_selection);
     icon_terminate();
     streak_terminate();
     shader_terminate();
     task_list_destroy(&g_task_list);
     task_destroy(&g_new_task);
+    task_destroy(&g_default_task);
     task_creator_destroy(&g_task_creator);
     timing_component_destroy(&g_timing_comp);
     CloseAudioDevice();
@@ -143,11 +164,10 @@ static void add_task() {
     char task_name[g_new_task.name_len + 1];
     task_name[g_new_task.name_len] = 0;
     ff_utf32_to_utf8(task_name, g_new_task.name, g_new_task.name_len);
-    g_new_task.db_id = db_create_task(task_name, g_new_task.done, g_new_task.left);
-
+    g_new_task.db_id = db_create_task(task_name, g_new_task.done, g_new_task.left,
+                                      tag_selection_get_selected(&g_tag_selection)->id);
     task_list_push(&g_task_list, g_new_task);
     g_new_task = task_create();
-    qsort(g_task_list.tasks.data, g_task_list.tasks.len, sizeof(g_task_list.tasks.data[0]), cmp_t);
 }
 
 static void synchronize_task_time_spent(Task *priority_task, TC_Return timing_comp_ret) {
@@ -160,43 +180,58 @@ static void synchronize_task_time_spent(Task *priority_task, TC_Return timing_co
         db_batch_incr_time(priority_task->db_id, timing_comp_ret.spent_delta, INCR_TIME_SPENT_REST);
 }
 
+static void handle_tag_selection(float x, float y) {
+    if (g_state == STATE_NORMAL) {
+        Tag *tag = tag_selection_view(&g_tag_selection, x, y);
+        if (tag && tag != (Tag *)-1) {
+            g_new_task.tag_id = tag->id;
+        }
+    } else if (g_state == STATE_TAG_SELECTION) {
+        // Tag *tag = tag_selection_draw_selector(&g_tag_selection);
+        // if (tag == (Tag*)-1) {
+        //     g_state = STATE_NORMAL;
+        // }
+    }
+}
+
+static inline bool pop_up_active(void) { return g_tag_selection.state == TAG_SELECTION_STATE_OPEN; }
+
 void main_loop() {
     while (!WindowShouldClose()) {
         db_cache_auto_sync();
         begin_frame();
 
-        float timing_comp_width = timing_component_width(&g_timing_comp);
+        float timing_comp_width = .25f * GetScreenWidth();
         float timing_comp_x = CENTER(0, GetScreenWidth(), timing_comp_width);
-        TC_Return timing_comp_ret =
-            timing_component_draw(&g_timing_comp, timing_comp_x, g_cfg.inner_gap);
+        TC_Return timing_comp_ret = timing_component_draw(&g_timing_comp, timing_comp_x,
+                                                          g_cfg.inner_gap, timing_comp_width);
 
         float offset_y =
-            g_cfg.inner_gap + timing_component_height(&g_timing_comp) + g_cfg.inner_gap;
-        bool should_add_task = task_creator_draw(&g_task_creator, &g_new_task, timing_comp_x,
-                                                 offset_y, timing_comp_width, 1);
-        if (should_add_task) add_task();
+            g_cfg.outer_gap + timing_component_height(&g_timing_comp) + g_cfg.inner_gap;
+        Task_Creator_Ret task_creator_ret =
+            task_creator_draw(&g_task_creator, &g_new_task, timing_comp_x, offset_y,
+                              timing_comp_width, !pop_up_active());
+        if (task_creator_ret.create) add_task();
 
         offset_y += task_creator_height() + g_cfg.inner_gap;
         assert(GetScreenHeight() > offset_y);
 
         float task_list_max_height = 800 - offset_y;
-        Changed_Task changed_task =
-            task_list_draw(&g_task_list, timing_comp_x, offset_y, timing_comp_width,
-                           task_list_max_height, DRAW_ENABLE_SCROLL);
-        if (changed_task) {
-            db_set_completed(changed_task->db_id);
-            db_set_done(changed_task->db_id, changed_task->done);
-        }
-        if (g_task_list.tasks.len) {
-            Task *task = &g_task_list.tasks.data[0];
-            synchronize_task_time_spent(task, timing_comp_ret);
-            if (timing_comp_ret.finished == TC_FIN_FOCUS) {
-                db_incr_done(task->db_id);
-                task->done += 1;
-                if (task->done == task->left) db_set_completed(task->db_id);
-                qsort(g_task_list.tasks.data, g_task_list.tasks.len,
-                      sizeof(g_task_list.tasks.data[0]), cmp_t);
-            }
+        task_list_draw(&g_task_list, timing_comp_x, offset_y, timing_comp_width,
+                       task_list_max_height, DRAW_ENABLE_SCROLL);
+
+        Task *task = 0;
+        if (g_task_list.tasks.len)
+            task = task_list_get_prioritized(&g_task_list);
+        else
+            task = &g_default_task;
+
+        assert(task);
+        synchronize_task_time_spent(task, timing_comp_ret);
+        if (timing_comp_ret.finished == TC_FIN_FOCUS) {
+            db_incr_done(task->db_id);
+            task->done += 1;
+            if (task->done == task->left) db_set_completed(task->db_id);
         }
 
         float date_time_x = timing_comp_x + timing_comp_width + g_cfg.inner_gap;
@@ -222,34 +257,17 @@ void main_loop() {
         if (IsKeyPressed(KEY_F5)) {
             shader_reload();
         }
+
+        handle_tag_selection(task_creator_ret.tag_sel_x, task_creator_ret.tag_sel_y);
+
         end_frame();
     }
 }
 
 int main(void) {
-    config_init();
-    color_init();
-    db_init();
-    int id0 = db_create_tag("work0", g_color[g_cfg.theme][COLOR_TEAL]);
-    int id1 = db_create_tag("work1", g_color[g_cfg.theme][COLOR_TEAL]);
-
-    size_t tags_len = db_get_tag_count();
-    Tag tags[tags_len];
-    db_get_tags(tags);
-    for (size_t i = 0; i < tags_len; i += 1) {
-        Tag *tag = &tags[i];
-        printf("id %d\n", tag->id);
-        printf("name %s\n", tag->name);
-        printf("color 0x%08x\n\n", tag->color);
-        free(tag->name);
-    }
-
-    db_delete_tag(id0);
-    db_delete_tag(id1);
-    db_terminate();
     // SetTraceLogLevel(LOG_NONE);
-    // main_init();
-    // main_loop();
-    // main_terminate();
+    main_init();
+    main_loop();
+    main_terminate();
     return 0;
 }

@@ -35,10 +35,9 @@ void btn_set_label(Btn *m, const char *str) {
     m->glyphs_height = dims.height;
 }
 
-float btn_width(Btn *m) { return g_cfg.btn_pad_horz * 2 + m->glyphs_width; }
+float btn_width(Btn *m) { return g_cfg.outer_gap2 + m->glyphs_width; }
 
-#define MAX(X, Y) (X > Y ? X : Y)
-float btn_height(Btn *m) { return g_cfg.btn_pad_vert * 2 + MAX(BTN_ICON_SIZE, g_style->typo.size); }
+float btn_height(Btn *m) { return g_cfg.inner_gap + g_style->typo.size; }
 
 void btn_handle_expansion_anim(Btn *m, Rectangle *bounds) {
     motion_update(&m->motion, &bounds->width, GetFrameTime());
@@ -85,14 +84,14 @@ bool btn_draw(Btn *m, float x, float y) {
 }
 
 bool btn_draw_with_icon(Btn *m, Icon icon, float x, float y) {
-    Rectangle bounds = {
+    Rectangle bg = {
         .x = x,
         .y = y,
-        .width = btn_width(m) + BTN_ICON_SIZE,
-        .height = btn_height(m),
+        .width = btn_width(m),
+        .height = g_style->typo.size+g_cfg.inner_gap,
     };
 
-    bool hovering = CheckCollisionPointRec(GetMousePosition(), bounds);
+    bool hovering = CheckCollisionPointRec(GetMousePosition(), bg);
     bool act = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     bool result = hovering && act ? true : false;
 
@@ -105,28 +104,25 @@ bool btn_draw_with_icon(Btn *m, Icon icon, float x, float y) {
             // fg_typo.color = g_color[g_cfg.theme][COLOR_ROSEWATER];
         }
         motion_update(&m->motion, target, GetFrameTime());
-        bounds.width += m->motion.position[0];
-        bounds.height += m->motion.position[1];
-        bounds.x -= m->motion.position[0] * .5f;
-        bounds.y -= m->motion.position[1] * .5f;
+        bg.width += m->motion.position[0];
+        bg.height += m->motion.position[1];
+        bg.x -= m->motion.position[0] * .5f;
+        bg.y -= m->motion.position[1] * .5f;
 
-        DRAW_BG(bounds, 8.f, COLOR_SURFACE0);
+        DRAW_BG(bg, 0x100, COLOR_SURFACE0);
     }
 
     Texture icon_tex = icon_get(icon);
     Rectangle icon_src = {0, 0, icon_tex.width, icon_tex.width};
-    Rectangle icon_dst = {bounds.x + g_cfg.btn_pad_horz + m->motion.position[0] * .5,
-                          bounds.y + g_cfg.btn_pad_vert + m->motion.position[1] * .5, BTN_ICON_SIZE,
-                          BTN_ICON_SIZE};
+    Rectangle icon_dst = {bg.x + g_cfg.btn_pad_horz + m->motion.position[0] * .5,
+                          bg.y + g_cfg.btn_pad_vert + m->motion.position[1] * .5,
+                          BTN_ICON_SIZE + 4.f, BTN_ICON_SIZE + 4.f};
     Vector2 icon_origin = {0};
     Color icon_col = GET_RCOLOR(COLOR_SKY);
     DrawTexturePro(icon_tex, icon_src, icon_dst, icon_origin, 0, icon_col);
 
-    float icon_offset = g_cfg.btn_pad_horz * 2 + BTN_ICON_SIZE;
-    bounds.width -= icon_offset;
-    bounds.x += icon_offset;
-    float fg_x = bounds.x + bounds.width * .5f - m->glyphs_width * .5f;
-    float fg_y = bounds.y + bounds.height * .5f - m->glyphs_height * .5f;
+    float fg_x = CENTER(bg.x + BTN_ICON_SIZE, bg.width - BTN_ICON_SIZE, m->glyphs_width);
+    float fg_y = CENTER(bg.y, bg.height, g_style->typo.size);
     ff_set_glyphs_pos(m->glyphs.data, m->glyphs.len, fg_x, fg_y);
 
     ff_draw(m->glyphs.data, m->glyphs.len, (float *)g_cfg.global_projection, *g_style);

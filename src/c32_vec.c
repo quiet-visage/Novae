@@ -3,16 +3,6 @@
 #include <assert.h>
 #include <string.h>
 
-#define AUTO_EXPAND_DA(DA_PTR, COUNT)                                     \
-    do {                                                                  \
-        size_t req_cap = (DA_PTR->len + COUNT) * sizeof(DA_PTR->data[0]); \
-        while (req_cap > DA_PTR->cap) {                                   \
-            req_cap *= 2;                                                 \
-            DA_PTR->data = realloc(DA_PTR->data, req_cap);                \
-            assert(DA_PTR->data);                                         \
-        }                                                                 \
-    } while (0)
-
 C32_Vec c32_vec_create(void) {
     C32_Vec ret = {.data = malloc(0x100), .cap = 0x100, .len = 0};
     assert(ret.data);
@@ -23,7 +13,12 @@ void c32_vec_destroy(C32_Vec* m) { free(m->data); }
 
 void c32_vec_ins_str(C32_Vec* m, size_t pos, C32* str, size_t len) {
     assert(pos <= m->len);
-    AUTO_EXPAND_DA(m, len);
+    size_t req_cap = (m->len + 1) * sizeof(*m->data);
+    while (req_cap > m->cap) {
+        m->cap *= 2;
+        m->data = realloc(m->data, m->cap);
+        assert(m->data);
+    }
 
     memmove(&m->data[pos + len], &m->data[pos], (m->len - pos) * sizeof(C32));
     memcpy(&m->data[pos], str, len * sizeof(C32));

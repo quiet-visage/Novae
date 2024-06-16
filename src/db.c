@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "colors.h"
+#include "config.h"
 #include "str.h"
 #include "task.h"
 
@@ -74,7 +76,7 @@
     "tag_id INTEGER NOT NULL UNIQUE," \
     "name TEXT NOT NULL,"             \
     "color INT UNSIGNED NOT NULL,"    \
-    "PRIMARY KEY (task_id AUTOINCREMENT));"
+    "PRIMARY KEY (tag_id AUTOINCREMENT));"
 #define SQLCMD_CREATE_TABLE_TASK           \
     "CREATE TABLE task ("                  \
     "task_id INTEGER NOT NULL UNIQUE,"     \
@@ -102,6 +104,7 @@ typedef enum {
     LOAD_TASK_VAL_FIELD_DONE,
     LOAD_TASK_VAL_FIELD_LEFT,
     LOAD_TASK_VAL_FIELD_DATE_COMPLETED,
+    LOAD_TASK_VAL_FIELD_TAG_ID,
 } Load_Task_Val_Field;
 
 typedef enum {
@@ -380,6 +383,13 @@ static int get_default_task_id() {
     return (int)id;
 }
 
+static void ensure_default_tags_exist(void) {
+    char cmd[SQL_CMD_CAP] = {0};
+    snprintf(cmd, SQL_CMD_CAP, "REPLACE INTO tag (tag_id, name, color) VALUES (0, '%s', %u);",
+             "other", g_color[g_cfg.theme][COLOR_SURFACE2]);
+    db_exec_cmd(cmd, 0, 0);
+}
+
 void db_init(void) {
     int res = sqlite3_open(DB_NAME, &g_db);
     assert(res == SQLITE_OK);
@@ -397,12 +407,13 @@ void db_init(void) {
         db_exec_cmd(SQLCMD_CREATE_TABLE_TAG, 0, 0);
         assert(is_table_task_valid());
     }
+    ensure_default_tags_exist();
 
     g_batch_incr_time = batch_incr_time_create();
     g_batch_cmd_str = str_create();
 
     if (!default_task_exists()) {
-        g_default_task_id = db_create_task(DEFAULT_TASK_NAME, 0, 0);
+        g_default_task_id = db_create_task(DEFAULT_TASK_NAME, 0, 0, 0);
     } else {
         g_default_task_id = get_default_task_id();
     }
@@ -416,14 +427,15 @@ void db_terminate(void) {
 
 void db_print_table(void) { db_exec_cmd(SQLCMD_QUERY_TABLE(task), print_output_cb, 0); }
 
-#define DB_CREATE_TASK_CMD_PREFIX "INSERT INTO task (name, date_created, done, left) "
+#define DB_CREATE_TASK_CMD_PREFIX "INSERT INTO task (name, date_created, done, left, tag_id) "
 #define DB_CREATE_TASK_CMD_PREFIX_LEN sizeof(DB_CREATE_TASK_CMD_PREFIX)
-int db_create_task(const char *name, int done, int left) {
+int db_create_task(const char *name, int done, int left, size_t tag_id) {
     static char sql_cmd[SQLCMD_STR_INSERT_CAP] = DB_CREATE_TASK_CMD_PREFIX;
     char *write_ptr = &sql_cmd[DB_CREATE_TASK_CMD_PREFIX_LEN - 1];
     memset(write_ptr, 0, SQLCMD_STR_INSERT_CAP - DB_CREATE_TASK_CMD_PREFIX_LEN);
-    snprintf(write_ptr, SQLCMD_STR_INSERT_CAP, "VALUES ('%s', datetime('now'), %d, %d)", name, done,
-             left);
+    printf("%ld\n", tag_id);
+    snprintf(write_ptr, SQLCMD_STR_INSERT_CAP, "VALUES ('%s', datetime('now'), %d, %d, %ld)", name,
+             done, left, tag_id);
     db_exec_cmd(sql_cmd, 0, 0);
     int id = sqlite3_last_insert_rowid(g_db);
     return id;
@@ -476,14 +488,15 @@ static int db_load_todays_task_cb(void *task_ptr_arg, int len, char **vals, char
     task->done = strtoul(vals[LOAD_TASK_VAL_FIELD_DONE], 0, 10);
     task->left = strtoul(vals[LOAD_TASK_VAL_FIELD_LEFT], 0, 10);
     task->complete = vals[LOAD_TASK_VAL_FIELD_DATE_COMPLETED];
+    task->tag_id = strtoul(vals[LOAD_TASK_VAL_FIELD_TAG_ID], 0, 10);
 
     *task_pp += 1;
     return 0;
 }
 
-void db_get_todays_task(Task *out, size_t cap) {
+void db_get_todays_task(Task *out) {
     db_exec_cmd(
-        "SELECT task_id, name, done, left, date_completed FROM task "
+        "SELECT task_id, name, done, left, date_completed, tag_id FROM task "
         "WHERE "
         "date_created >= "
         "date('now');",
@@ -539,7 +552,7 @@ void db_get_all_time_activity(Time_Activity *tas) {
     db_exec_cmd(
         "SELECT SUM(diligence) AS diligence, "
         "SUM(rest) AS rest, SUM(idle) AS idle, DATE(date_created) "
-        "AS date_created FROM task GROUP BY DATE(date_created);",
+        "AS date_created FROM task WHERE diligence > 0 GROUP BY DATE(date_created);",
         get_time_activity_cb, &tas);
 }
 

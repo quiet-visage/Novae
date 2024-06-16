@@ -47,6 +47,6 @@ typedef struct {
 
 void timing_component_create(Timing_Component* m);
 void timing_component_destroy(Timing_Component* m);
-TC_Return timing_component_draw(Timing_Component* m, float x, float y);
+TC_Return timing_component_draw(Timing_Component* m, float x, float y, float max_width);
 float timing_component_width(Timing_Component* m);
 float timing_component_height(Timing_Component* m);

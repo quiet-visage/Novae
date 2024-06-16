@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "config.h"
 #include "db.h"
 #include "today.h"
 
@@ -29,6 +30,7 @@ static Tag_Vec tag_vec_create() {
     Tag_Vec res = {0};
     res.cap = ARRAY_INIT_CAP;
     res.data = malloc(res.cap);
+    return res;
 }
 
 static void tag_vec_prealloc(Tag_Vec* m, size_t elem_count) {
@@ -40,10 +42,10 @@ static void tag_vec_prealloc(Tag_Vec* m, size_t elem_count) {
     }
 }
 
-static void tag_vec_push(Tag_Vec* m, Tag tag) {
-    tag_vec_prealloc(m, 1);
-    m->data[m->len++] = tag;
-}
+// static void tag_vec_push(Tag_Vec* m, Tag tag) {
+//     tag_vec_prealloc(m, 1);
+//     m->data[m->len++] = tag;
+// }
 
 static Tag* tag_vec_find(Tag_Vec* m, int id) {
     for (size_t i = 0; i < m->len; i += 1) {
@@ -73,7 +75,6 @@ static void map_prealloc(size_t n_elements) {
     }
 }
 
-#define MAX(i, j) (i > j ? i : j)
 static void update_max_focus(void) {
     g_max_focus_spent = 0;
     for (size_t i = 0; i < g_map_len; i += 1) {
@@ -162,8 +163,20 @@ Time_Activity* db_cache_get_activity_array(void) { return g_map; }
 
 void db_cache_sync_tags(void) {
     size_t count = db_get_tag_count();
+    tag_vec_clear(&g_tags);
     tag_vec_prealloc(&g_tags, count);
     db_get_tags(g_tags.data);
+    g_tags.len = count;
 }
 
 inline Tag* db_cache_get_tag(int id) { return tag_vec_find(&g_tags, id); }
+
+Tag* db_cache_get_default_tag(void) {
+    Tag* result = db_cache_get_tag(0);
+    assert(result);
+    return result;
+}
+
+Tag* db_cache_get_tag_array(void) { return g_tags.data; }
+
+size_t db_cache_get_tag_array_len(void) { return g_tags.len; }

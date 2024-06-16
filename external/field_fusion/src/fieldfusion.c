@@ -1076,22 +1076,22 @@ void ff_set_glyphs_pos(FF_Glyph *glyphs, size_t count, float x,
     float advances_x[count];
     float advances_y[count];
     float prev_adv_x = glyphs[0].position.x;
-    float prev_adv_y = glyphs[0].position.y;
+    // float prev_adv_y = glyphs[0].position.y;
 
     for (size_t i = 0; i < count; i += 1) {
         float tmp_prev_x = glyphs[i].position.x;
-        float tmp_prev_y = glyphs[i].position.y;
+        // float tmp_prev_y = glyphs[i].position.y;
         advances_x[i] = glyphs[i].position.x - prev_adv_x;
-        advances_y[i] = glyphs[i].position.y - prev_adv_y;
+        // advances_y[i] = glyphs[i].position.y - prev_adv_y;
         prev_adv_x = tmp_prev_x;
-        prev_adv_y = tmp_prev_y;
+        // prev_adv_y = tmp_prev_y;
     }
 
     float prev_x = x;
     for (size_t i = 0; i < count; i += 1) {
-        float corrected_y = glyphs[i].size + y;
+        // float corrected_y = glyphs[i].size + y;
         glyphs[i].position.x = prev_x + advances_x[i];
-        glyphs[i].position.y = corrected_y + advances_y[i];
+        glyphs[i].position.y = glyphs[i].size+y;
         prev_x = glyphs[i].position.x;
     }
 }

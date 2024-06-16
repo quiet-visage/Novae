@@ -1,6 +1,7 @@
 #pragma once
 
 #include <raylib.h>
+#include <rlgl.h>
 
 typedef enum {
     THEME_CATPUCCIN_LATTE,

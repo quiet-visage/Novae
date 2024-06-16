@@ -154,3 +154,20 @@ bool editor_handle_input(Editor* m, C32_Vec* buf) {
     }
     return ret;
 }
+
+void editor_set_placeholder(Editor* m, char* str) {
+    size_t len = strlen(str);
+    if (m->placeholder) free(m->placeholder);
+    if (!len) {
+        m->placeholder = 0;
+        return;
+    }
+    m->placeholder = calloc(1, len + 1);
+    memcpy(m->placeholder, str, len);
+}
+
+void editor_destroy(Editor* m) {
+    if (m->placeholder) {
+        free(m->placeholder);
+    }
+}

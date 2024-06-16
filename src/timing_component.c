@@ -87,7 +87,8 @@ void timing_component_draw_glyphs(Timing_Component *m, float x, float y) {
     char time_numbers[16] = {0};
     snprintf(time_numbers, 15, "%02lu:%02lu", mins, secs);
     size_t time_number_len = strlen(time_numbers);
-    ff_draw_str8(time_numbers, time_number_len, x, y, (float *)g_cfg.global_projection, g_cfg.bstyle);
+    ff_draw_str8(time_numbers, time_number_len, x, y, (float *)g_cfg.global_projection,
+                 g_cfg.bstyle);
 }
 
 // void timing_component_draw_note_glyphs(Timing_Component *m,
@@ -142,11 +143,11 @@ float timing_component_width(Timing_Component *m) {
 float timing_component_height(Timing_Component *m) {
     float lbtn_height = btn_height(&m->interrupt);
     float chrn_height = g_cfg.bstyle.typo.size;
-    float height = g_cfg.outer_gap * 2 + g_cfg.inner_gap * 2 + lbtn_height + chrn_height;
+    float height = g_cfg.outer_gap2 + g_cfg.inner_gap2 + lbtn_height + chrn_height;
     return height;
 }
 
-TC_Return timing_component_draw(Timing_Component *m, float x, float y) {
+TC_Return timing_component_draw(Timing_Component *m, float x, float y, float max_width) {
     TC_Return ret = {0};
 
     if (m->state == TC_STATE_RUNNING) {
@@ -167,9 +168,9 @@ TC_Return timing_component_draw(Timing_Component *m, float x, float y) {
 
     float width =
         g_cfg.outer_gap * 6 + fmaxf(lbtn_width + rbtn_width + g_cfg.inner_gap, chrn_width);
-    float height = g_cfg.outer_gap * 2 + g_cfg.inner_gap * 2 + lbtn_height + chrn_height;
+    float height = g_cfg.outer_gap2 + g_cfg.inner_gap2 + lbtn_height + chrn_height;
     float rad = RADIUS_TO_ROUNDNESS(g_cfg.bg_radius, height);
-    Rectangle bg = {x, y, width, height};
+    Rectangle bg = {x, y, MAX(width, max_width), height};
     DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
 
     float lbtn_x = x + width * .5f - lbtn_width * .5f - g_cfg.inner_gap * .5f - rbtn_width * .5f;
@@ -178,7 +179,7 @@ TC_Return timing_component_draw(Timing_Component *m, float x, float y) {
     float chrn_x = x + width * .5f - chrn_width * .5f;
     float chrn_y = y + g_cfg.outer_gap;
 
-    float lbtn_y = chrn_y + chrn_height + g_cfg.inner_gap * 2;
+    float lbtn_y = chrn_y + chrn_height + g_cfg.inner_gap2;
     float rbtn_y = lbtn_y;
 
     timing_component_draw_glyphs(m, chrn_x, chrn_y);
