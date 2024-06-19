@@ -12,7 +12,6 @@
 
 #include "button.h"
 #include "c32_vec.h"
-#include "clip.h"
 #include "colors.h"
 #include "config.h"
 #include "cursor.h"
@@ -168,6 +167,12 @@ float search_input_width(Search_Input* m) {
     return ff_measure_utf32(m->input.data, m->input.len, *g_style).width;
 }
 
+bool search_input_changed(Search_Input* m) {
+    bool result = m->input.len != m->previous_input_len;
+    m->previous_input_len = m->input.len;
+    return result;
+}
+
 void search_input_view(Search_Input* m, float x, float y) {
     editor_handle_input(&m->edit, &m->input);
 
@@ -207,6 +212,7 @@ void begin_open_view_fade_in(Tag_Selection* m) {
 }
 
 Tag_Selection tag_selection_create(void) {
+    g_tag_hsv = rgb2hsv(GET_RCOLOR(COLOR_TEAL));
     Tag_Selection result = {0};
     // result.search=TAG_SELECTION_STATE_OPEN;
     result.tag = db_cache_get_default_tag();
@@ -220,6 +226,7 @@ Tag_Selection tag_selection_create(void) {
     result.value_wheel.radius = HUE_RAD - HUE_RING_W * 2 - 5.f * 2;
     result.add_tag_btn = btn_create();
     result.search_btn = btn_create();
+    result.selected = (size_t)-1;
     return result;
 }
 
@@ -236,6 +243,41 @@ static void compact_view(Tag_Selection* m, float x, float y) {
     if (!clicked) return;
     begin_open_view_fade_in(m);
     m->state = TAG_SELECTION_STATE_OPEN;
+}
+
+static int get_similiarity(char* str1, size_t str1_len, char* str2, size_t str2_len) {
+    int score = 0;
+    int prev_match = 0;
+    for (size_t i = 0; i < MIN(str1_len, str2_len); i += 1) {
+        char c1 = str1[i];
+        char c2 = str2[i];
+        if (c1 == c2) {
+            score += 1 + prev_match;
+            prev_match += 1;
+        } else {
+            prev_match = 0;
+        }
+    }
+    return score;
+}
+
+static size_t get_closest_input_match(Tag_Selection* m, Tag* tags, size_t tag_len) {
+    size_t result = (size_t)-1;
+    size_t result_score = 0;
+    char input8[m->search.input.len];
+    ff_utf32_to_utf8(input8, m->search.input.data, m->search.input.len);
+    for (size_t i = 0; i < tag_len; i += 1) {
+        Tag* tag = &tags[i];
+        char* name = tag->name;
+        size_t name_len = strlen(name);
+        int score = get_similiarity(name, name_len, input8, m->search.input.len);
+        if (score > result_score) {
+            result = i;
+            result_score = score;
+        }
+    }
+
+    return result;
 }
 
 static void view_color_picker(Tag_Selection* m, float x, float y) {
@@ -258,68 +300,39 @@ static void view_color_picker(Tag_Selection* m, float x, float y) {
     DrawCircleV(orig, .15 * HUE_RAD, hsv2rgb(g_tag_hsv));
 }
 
-static Tag* open_view(Tag_Selection* m) {
-    motion_update_x(&m->mo, m->target_alpha, GetFrameTime());
-    if (!m->mo.position[0]) return 0;
-    Tag* result = {0};
-
+static Rectangle get_open_background(Tag_Selection* m) {
+    Rectangle result = {0};
     float screen_w = GetScreenWidth();
     float screen_h = GetScreenHeight();
-    float open_view_w = screen_w * OPEN_VIEW_X_RATIO;
+    result.width = screen_w * OPEN_VIEW_X_RATIO;
+    result.height = btn_height(&m->search_btn) + HUE_RAD * 2 + g_cfg.outer_gap2 + g_cfg.inner_gap;
+    result.x = CENTER(0, screen_w, result.width);
+    result.y = CENTER(0, screen_h, result.height);
+    return result;
+}
 
-    float btns_height = btn_height(&m->search_btn);
-    float wheel_rad = HUE_RAD * 2;
-    float total_height = g_cfg.outer_gap2 + g_cfg.inner_gap + btns_height + wheel_rad;
+static Rectangle get_search_bg(Tag_Selection* m, float bg_y, float create_tag_btn_x,
+                               float search_str_w) {
+    Rectangle result = {0};
+    result.x = create_tag_btn_x + btn_width(&m->add_tag_btn) + g_cfg.inner_gap * .5;
+    result.y = bg_y + g_cfg.outer_gap;
+    result.width = search_str_w + g_cfg.inner_gap2;
+    result.height = g_style->typo.size + g_cfg.inner_gap;
+    return result;
+}
 
-    Rectangle bg = {0};
-    bg.width = open_view_w;
-    bg.height = total_height;
-    bg.x = 0;
-    bg.y = 0;
-    DRAW_BG(bg, g_cfg.bg_radius, COLOR_MANTLE);
-
+static float get_search_width(Tag_Selection* m) {
     char max_str[] = "tag name";
     float search_w = search_input_width(&m->search);
     float max_w = MAX(ff_measure_utf8(max_str, strlen(max_str), *g_style).width, search_w);
-    float left_side_w = max_w + btn_width(&m->search_btn) * 2 + g_cfg.inner_gap * 3;
+    return max_w;
+}
 
-    float create_tag_btn_x = CENTER(bg.x, bg.width * .5, left_side_w);
-
-    float btn_y = g_cfg.outer_gap;
-    bool add = btn_draw_with_icon(&m->add_tag_btn, ICON_TAG_ADD, create_tag_btn_x, btn_y);
-
-    Rectangle search_bg = {create_tag_btn_x + btn_width(&m->add_tag_btn) + g_cfg.inner_gap * .5,
-                           g_cfg.outer_gap, max_w + g_cfg.inner_gap2,
-                           g_style->typo.size + g_cfg.inner_gap};
-    DRAW_BG(search_bg, 0x100, COLOR_SURFACE0);
-    clip_begin_custom_shape();
-    DrawRectangleRounded(search_bg, 1.0f, g_cfg.rounded_rec_segments, WHITE);
-    clip_end_custom_shape();
-    Color col0 = hsv2rgb(g_tag_hsv);
-    Color col1 = GET_RCOLOR(COLOR_BASE);
-    col0.a = 0xff;
-    col1.a = 0;
-    DrawRectangleGradientV(search_bg.x, search_bg.y + search_bg.height * .75f, search_bg.width,
-                           search_bg.height * .25f, col1, col0);
-    clip_end();
-
-    float search_x = search_bg.x + g_cfg.inner_gap;
-    float search_y = CENTER(search_bg.y, search_bg.height, g_style->typo.size);
-
-    search_input_view(&m->search, search_x, search_y);
-    create_tag_btn_x = search_bg.x + search_bg.width + g_cfg.inner_gap * .5;
-    btn_draw_with_icon(&m->search_btn, ICON_SEARCH, create_tag_btn_x, btn_y);
-
-    view_color_picker(m, search_bg.x + search_bg.width * .5,
-                      bg.y + g_cfg.outer_gap + search_bg.height + g_cfg.inner_gap + HUE_RAD);
-
-    Tag* tags = db_cache_get_tag_array();
-    size_t tags_len = db_cache_get_tag_array_len();
-    float tags_start_x = bg.x + bg.width * .5;
-    float tags_start_y = bg.y + g_cfg.outer_gap;
+static void draw_tags(Tag_Selection* m, Tag* tags, size_t tags_len, float x, float y, Rectangle bg,
+                      Tag** result) {
     float tags_end = bg.x + bg.width - g_cfg.outer_gap;
-    float tag_x = tags_start_x;
-    float tag_y = tags_start_y;
+    float tag_x = x;
+    float tag_y = y;
     Vector2 mouse_pos = GetMousePosition();
     bool is_mouse_pressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     for (size_t i = 0; i < tags_len; i += 1) {
@@ -327,21 +340,73 @@ static Tag* open_view(Tag_Selection* m) {
         float tag_w = tag_width(&tag);
         bool overflow = tag_x + tag_w > tags_end;
         if (overflow) {
-            tag_x = tags_start_x;
+            tag_x = x;
             tag_y += g_cfg.inner_gap + tag_height();
         }
         Rectangle bounds = tag_draw(&tag, tag_x, tag_y);
+        if (m->selected == i) {
+            DrawRectangleRoundedLines(bounds, 0x100, g_cfg.rounded_rec_segments, 1.f,
+                                      GET_RCOLOR(COLOR_TEAL));
+        }
+
         if (is_mouse_pressed && CheckCollisionPointRec(mouse_pos, bounds)) {
             m->state = TAG_SELECTION_STATE_COMPACT;
-            result = &tags[i];
-            m->tag=&tags[i];
+            *result = &tags[i];
+            m->tag = &tags[i];
         }
+
         tag_x += g_cfg.inner_gap + tag_w;
     }
+}
+
+static Tag* open_view(Tag_Selection* m) {
+    motion_update_x(&m->mo, m->target_alpha, GetFrameTime());
+    if (!m->mo.position[0]) return 0;
+    Tag* result = {0};
+
+    Rectangle bg = get_open_background(m);
+    DRAW_BG(bg, g_cfg.bg_radius, COLOR_MANTLE);
+
+    float search_w = get_search_width(m);
+    float left_side_w = search_w + btn_width(&m->search_btn) * 2 + g_cfg.inner_gap * 3;
+
+    float create_tag_btn_x = CENTER(bg.x, bg.width * .5, left_side_w);
+
+    float btn_y = g_cfg.outer_gap + bg.y;
+    bool add = btn_draw_with_icon(&m->add_tag_btn, ICON_TAG_ADD, create_tag_btn_x, btn_y);
+
+    Rectangle search_bg = get_search_bg(m, bg.y, create_tag_btn_x, search_w);
+    DRAW_BG(search_bg, 0x100, COLOR_SURFACE0);
+    draw_underglow(search_bg, hsv2rgb(g_tag_hsv), GET_RCOLOR(COLOR_BASE));
+
+    float search_x = search_bg.x + g_cfg.inner_gap;
+    float search_y = CENTER(search_bg.y, search_bg.height, g_style->typo.size);
+
+    Tag* tags = db_cache_get_tag_array();
+    size_t tags_len = db_cache_get_tag_array_len();
+    search_input_view(&m->search, search_x, search_y);
+    if (search_input_changed(&m->search)) {
+        m->selected = get_closest_input_match(m, tags, tags_len);
+    }
+
+    create_tag_btn_x = search_bg.x + search_bg.width + g_cfg.inner_gap * .5;
+    btn_draw_with_icon(&m->search_btn, ICON_SEARCH, create_tag_btn_x, btn_y);
+
+    view_color_picker(m, search_bg.x + search_bg.width * .5,
+                      bg.y + g_cfg.outer_gap + search_bg.height + g_cfg.inner_gap + HUE_RAD);
+
+    float tags_x = bg.x + bg.width * .5;
+    float tags_y = bg.y + g_cfg.outer_gap;
+    draw_tags(m, tags, tags_len, tags_x, tags_y, bg, &result);
 
     if (IsKeyPressed(KEY_ESCAPE)) {
         m->state = TAG_SELECTION_STATE_COMPACT;
         return (Tag*)-1;
+    }
+    if (IsKeyPressed(KEY_ENTER) && m->selected != (size_t)-1) {
+        m->state = TAG_SELECTION_STATE_COMPACT;
+        result = &tags[m->selected];
+        m->tag = result;
     }
 
     if (add && m->search.input.len) {
@@ -363,6 +428,4 @@ Tag* tag_selection_view(Tag_Selection* m, float x, float y) {
     return 0;
 }
 
-Tag* tag_selection_get_selected(Tag_Selection* m) {
-    return m->tag;
-}
+Tag* tag_selection_get_selected(Tag_Selection* m) { return m->tag; }

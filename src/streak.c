@@ -12,10 +12,10 @@ https://stackoverflow.com/questions/35476142/gaussian-blur-handle-with-alpha-tra
 #include <raylib.h>
 #include <raymath.h>
 
+#include "blur.h"
 #include "config.h"
 #include "db_cache.h"
 #include "fieldfusion.h"
-#include "shader.h"
 
 #define BASE_IMG_SIZE 200.f
 #define DEG_TIME_STEP_SCALE 100.f
@@ -23,14 +23,11 @@ https://stackoverflow.com/questions/35476142/gaussian-blur-handle-with-alpha-tra
 #define ORBIT_RADIUS 90.f
 #define PARTICLE_BLUR_RADIUS 2
 #define RADIUS_DECAY .1f
-#define ALPHA_DECAY 3
+#define ALPHA_DECAY 0
 #define DEGREE_DECAY 1.5f
 
 static Image g_img;
-static Texture g_texture;
 static RenderTexture g_render_texture;
-static RenderTexture g_render_texture0;
-static RenderTexture g_render_texture1;
 static Color g_base_color;
 static float g_deg;
 static FF_Style* g_style = &g_cfg.sstyle;
@@ -38,11 +35,6 @@ float g_streak_count;
 
 void streak_init(void) {
     g_img = GenImageColor(BASE_IMG_SIZE, BASE_IMG_SIZE, BLANK);
-    g_texture = LoadTextureFromImage(g_img);
-    g_render_texture = LoadRenderTexture(BASE_IMG_SIZE, BASE_IMG_SIZE);
-    g_render_texture0 = LoadRenderTexture(BASE_IMG_SIZE, BASE_IMG_SIZE);
-    // SetTextureFilter(g_render_texture.texture, TEXTURE_FILTER_BILINEAR);
-    g_render_texture1 = LoadRenderTexture(BASE_IMG_SIZE, BASE_IMG_SIZE);
     g_base_color = GET_RCOLOR(COLOR_MAUVE);
 }
 
@@ -73,46 +65,8 @@ static void draw_particle(float deg, Color base_color) {
     }
 }
 
-static void streak_update_image() {
-    BeginTextureMode(g_render_texture);
-    ClearBackground(BLANK);
-    draw_particle(g_deg, g_base_color);
-    Color col = GET_RCOLOR(COLOR_TEAL);
-    draw_particle(g_deg + 180.f, col);
-    EndTextureMode();
-
-    float tap = 1;
-    Shader horz_blur = shader_get(SHADER_HORZ_BLUR);
-    Shader vert_blur = shader_get(SHADER_VERT_BLUR);
-    Shader mix = shader_get(SHADER_MIX);
-    int texture1 = GetShaderLocation(mix, "texture1");
-    for (size_t i = 0; i < tap; i += 1) {
-        BeginTextureMode(g_render_texture0);
-        ClearBackground(BLANK);
-        BeginShaderMode(horz_blur);
-        DrawTexture(g_render_texture.texture, 0, 0, WHITE);
-        EndShaderMode();
-        EndTextureMode();
-
-        BeginTextureMode(g_render_texture1);
-        ClearBackground(BLANK);
-        BeginShaderMode(vert_blur);
-        DrawTexture(g_render_texture.texture, 0, 0, WHITE);
-        EndShaderMode();
-        EndTextureMode();
-
-        BeginTextureMode(g_render_texture);
-        BeginShaderMode(mix);
-        SetShaderValueTexture(mix, texture1, g_render_texture1.texture);
-        DrawTexture(g_render_texture0.texture, 0, 0, WHITE);
-        EndShaderMode();
-        EndTextureMode();
-    }
-}
-
 void streak_draw(float x, float y) {
     streak_update_deg();
-    streak_update_image();
 
     char streak_str[64] = {0};
     size_t streak_str_len = snprintf(streak_str, 64, "%ld", db_cache_get_streak());
@@ -128,19 +82,16 @@ void streak_draw(float x, float y) {
     float ring_particle_x = x + t_width * .5f - ring_particle_sz * .5f;
     float ring_particle_y = y + g_style->typo.size * .5f - ring_particle_sz * .5f;
 
-    static const Rectangle src = {0, 0, BASE_IMG_SIZE, BASE_IMG_SIZE};
-    static const Vector2 orig = {0};
-    Rectangle dst = {ring_particle_x, ring_particle_y, ring_particle_sz, ring_particle_sz};
-
-    BeginShaderMode(shader_get(SHADER_BLOOM));
-    DrawTexturePro(g_render_texture.texture, src, dst, orig, 0, WHITE);
-    EndShaderMode();
+    // BeginShaderMode(shader_get(SHADER_BLOOM));
+    blur_begin();
+    draw_particle(g_deg, g_base_color);
+    Color col = GET_RCOLOR(COLOR_TEAL);
+    draw_particle(g_deg + 180.f, col);
+    blur_end(g_render_texture.texture.width, g_render_texture.texture.height, 1);
+    // EndShaderMode();
 }
 
 void streak_terminate() {
     UnloadImage(g_img);
-    UnloadTexture(g_texture);
     UnloadRenderTexture(g_render_texture);
-    UnloadRenderTexture(g_render_texture0);
-    UnloadRenderTexture(g_render_texture1);
 }

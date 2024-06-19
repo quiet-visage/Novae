@@ -199,6 +199,7 @@ Task_Return_Flags task_draw(Task* m, float x, float y, float max_width, Rectangl
     Tag* tag = db_cache_get_tag(m->tag_id);
     if (!tag) tag = db_cache_get_default_tag();
     tag_draw(tag, tag_x, tag_y);
+    clip_end();
 
     if (m->left) {
         C32 str[64] = {0};
@@ -219,7 +220,6 @@ Task_Return_Flags task_draw(Task* m, float x, float y, float max_width, Rectangl
         rlDrawRenderBatchActive();
     }
 
-    clip_end();
 
     if (move_top) result |= TASK_MOVE_TOP;
     if (move_up) result |= TASK_MOVE_UP;

@@ -8,7 +8,6 @@
 
 const char* g_shader_path[] = {
     [SHADER_HORZ_BLUR] = SHADER_FOLDER "/horz_blur.fs",
-    [SHADER_VERT_BLUR] = SHADER_FOLDER "/vert_blur.fs",
     [SHADER_BLOOM] = SHADER_FOLDER "/bloom.fs",
     [SHADER_MIX] = SHADER_FOLDER "/mix.fs",
 };

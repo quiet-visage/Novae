@@ -261,5 +261,6 @@ Task_Creator_Ret task_creator_draw(Task_Creator* m, Task* out, float x, float y,
         clear(m);
         result.create = 1;
     }
+
     return result;
 }

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.29)
 set(CMAKE_CXX_COMPILER gcc)
 
 project(novae C)
@@ -43,7 +43,7 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 23)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall )
 
 set(PLATFORM Desktop)
-set(GRAPHICS GRAPHICS_API_OPENGL_43)
+# set(GRAPHICS GRAPHICS_API_OPENGL_43)
 option(BUILD_EXAMPLES OFF)
 option(CUSTOMIZE_BUILD ON)
 option(SUPPORT_FILEFORMAT_SVG ON)

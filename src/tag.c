@@ -1,6 +1,5 @@
 #include "tag.h"
 
-#include "alpha_inherit.h"
 #include "clip.h"
 #include "colors.h"
 #include "config.h"
@@ -20,6 +19,16 @@ float tag_width(Tag* tag) { return tag_core_width(tag) + g_cfg.inner_gap2; }
 
 float tag_height(void) { return tag_core_height() + g_cfg.inner_gap; }
 
+void draw_underglow(Rectangle bg, Color col0, Color col1) {
+    clip_begin_custom_shape();
+    DrawRectangleRounded(bg, 1.0f, g_cfg.rounded_rec_segments, WHITE);
+    clip_end_custom_shape();
+    col0.a = 0xff;
+    col1.a = 0;
+    DrawRectangleGradientV(bg.x, bg.y + bg.height * .75f, bg.width, bg.height * .25f, col1, col0);
+    clip_end();
+}
+
 Rectangle tag_draw(Tag* m, float x, float y) {
     float core_w = tag_core_width(m);
     float core_h = tag_core_height();
@@ -33,18 +42,9 @@ Rectangle tag_draw(Tag* m, float x, float y) {
     outline.y -= 1.f;
 
     DrawRectangleRounded(bg, 1.0f, g_cfg.rounded_rec_segments, bg_color);
-    clip_begin_custom_shape();
-    DrawRectangleRounded(bg, 1.0f, g_cfg.rounded_rec_segments, WHITE);
-    clip_end_custom_shape();
-    Color col0 = GetColor(m->color);
-    Color col1 = bg_color;
-    col0.a = 0xff;
-    col1.a = 0;
-    DrawRectangleGradientV(bg.x, bg.y + bg.height * .75f, bg.width, bg.height * .25f, col1, col0);
-    clip_end();
+    draw_underglow(bg, GetColor(m->color), bg_color);
 
     rlDrawRenderBatchActive();
-
     float fg_x = CENTER(bg.x, bg.width, core_w);
     float fg_y = CENTER(bg.y, bg.height, core_h);
     size_t name_len = strlen(m->name);

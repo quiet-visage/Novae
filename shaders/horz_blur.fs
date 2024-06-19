@@ -1,36 +1,45 @@
-
 #version 330
-
-// Input vertex attributes (from vertex shader)
-in vec2 fragTexCoord;
 in vec4 fragColor;
-
-// Input uniform values
+in vec2 fragTexCoord;
+//declare uniforms
 uniform sampler2D texture0;
-uniform vec4 colDiffuse;
+uniform float resolution;
+uniform float radius;
+uniform vec2 dir;
 
-// Output fragment color
-out vec4 finalColor;
+void main() {
+	//this will be our RGBA sum
+	vec4 sum = vec4(0.0);
+	
+	//our original texcoord for this fragment
+	vec2 tc = fragTexCoord;
+	
+	//the amount to blur, i.e. how far off center to sample from 
+	//1.0 -> blur by one pixel
+	//2.0 -> blur by two pixels, etc.
+	float blur = radius/resolution; 
+    
+	//the direction of our blur
+	//(1.0, 0.0) -> x-axis blur
+	//(0.0, 1.0) -> y-axis blur
+	float hstep = dir.x;
+	float vstep = dir.y;
+    
+	//apply blurring, using a 9-tap filter with predefined gaussian weights
+    
+	sum += texture2D(texture0, vec2(tc.x - 4.0*blur*hstep, tc.y - 4.0*blur*vstep)) * 0.0162162162;
+	sum += texture2D(texture0, vec2(tc.x - 3.0*blur*hstep, tc.y - 3.0*blur*vstep)) * 0.0540540541;
+	sum += texture2D(texture0, vec2(tc.x - 2.0*blur*hstep, tc.y - 2.0*blur*vstep)) * 0.1216216216;
+	sum += texture2D(texture0, vec2(tc.x - 1.0*blur*hstep, tc.y - 1.0*blur*vstep)) * 0.1945945946;
+	
+	sum += texture2D(texture0, vec2(tc.x, tc.y)) * 0.2270270270;
+	
+	sum += texture2D(texture0, vec2(tc.x + 1.0*blur*hstep, tc.y + 1.0*blur*vstep)) * 0.1945945946;
+	sum += texture2D(texture0, vec2(tc.x + 2.0*blur*hstep, tc.y + 2.0*blur*vstep)) * 0.1216216216;
+	sum += texture2D(texture0, vec2(tc.x + 3.0*blur*hstep, tc.y + 3.0*blur*vstep)) * 0.0540540541;
+	sum += texture2D(texture0, vec2(tc.x + 4.0*blur*hstep, tc.y + 4.0*blur*vstep)) * 0.0162162162;
 
-// NOTE: Add here your custom variables
-
-// NOTE: Render size values must be passed from code
-const float renderWidth = 1280;
-
-float offset[3] = float[](0.0, 1.3846153846, 3.2307692308);
-float weight[3] = float[](0.2270270270, 0.3162162162, 0.0702702703);
-
-void main()
-{
-    // Texel color fetching from texture sampler
-    vec4 orig = texture(texture0, fragTexCoord);
-    vec3 texelColor = (orig.rgb*);
-
-    for (int i = 1; i < 3; i++)
-    {
-        texelColor.rbg += texture(texture0, fragTexCoord + vec2(offset[i])/renderWidth, 0.0).rgb*weight[i];
-        texelColor.rbg += texture(texture0, fragTexCoord - vec2(offset[i])/renderWidth, 0.0).rgb*weight[i];
-    }
-
-    finalColor = texelColor;
+	//discard alpha for our simple demo, multiply by vertex color and return
+	gl_FragColor = fragColor * sum.rgb;
 }
+

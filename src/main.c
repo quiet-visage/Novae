@@ -1,5 +1,5 @@
 /*
-TODO: fix task indicator
+TODO: blur
 TODO: search implementation
 TODO: alpha inherit and smooth in / out
 TODO: Tag selector on tag creator
@@ -12,6 +12,7 @@ TODO: move side button to separate implementation
 #include <rlgl.h>
 #include <stdio.h>
 
+#include "blur.h"
 #include "clip.h"
 #include "colors.h"
 #include "config.h"
@@ -124,6 +125,7 @@ void main_init() {
     }
 
     g_tag_selection = tag_selection_create();
+    blur_init();
 };
 
 void main_terminate() {
@@ -139,6 +141,7 @@ void main_terminate() {
     task_destroy(&g_default_task);
     task_creator_destroy(&g_task_creator);
     timing_component_destroy(&g_timing_comp);
+    blur_terminate();
     CloseAudioDevice();
     CloseWindow();
 }
@@ -197,6 +200,9 @@ static void handle_tag_selection(float x, float y) {
 static inline bool pop_up_active(void) { return g_tag_selection.state == TAG_SELECTION_STATE_OPEN; }
 
 void main_loop() {
+    Image img = LoadImage("test.png");
+    Texture tex = LoadTextureFromImage(img);
+    UnloadImage(img);
     while (!WindowShouldClose()) {
         db_cache_auto_sync();
         begin_frame();
@@ -260,8 +266,22 @@ void main_loop() {
 
         handle_tag_selection(task_creator_ret.tag_sel_x, task_creator_ret.tag_sel_y);
 
+        int static tap = 0;
+        if (IsKeyPressed(KEY_UP) && tap < 33) {
+            tap += 1;
+        }
+        if (IsKeyPressed(KEY_DOWN) && tap > 0) {
+            tap -= 1;
+        }
+        // blur_begin();
+        // DrawRectangle(0, 0, 100, 100, GREEN);
+        // DrawTexture(tex, 0, 0, WHITE);
+        // // blur_end(tex.width, tex.height);
+        // blur_end(tex.width, tex.height, tap);
+
         end_frame();
     }
+    UnloadTexture(tex);
 }
 
 int main(void) {

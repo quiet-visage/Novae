@@ -20,6 +20,7 @@ typedef struct {
     C32_Vec input;
     Editor edit;
     Cursor cursor;
+    size_t previous_input_len;
 } Search_Input;
 
 Search_Input search_input_create(void);
@@ -43,6 +44,7 @@ typedef struct {
     Picker_Wheel saturation_wheel;
     Btn add_tag_btn;
     Btn search_btn;
+    size_t selected;
 } Tag_Selection;
 
 Tag_Selection tag_selection_create(void);
