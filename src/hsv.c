@@ -67,9 +67,9 @@ Color hsv2rgb(HSV hsv) {
 int hsv2rgb_i(HSV hsv) {
     Color col = hsv2rgb(hsv);
     int result = 0;
-    result|=col.r << 24;
-    result|=col.g << 16;
-    result|=col.b << 8;
-    result|=0xff;
+    result |= col.r << 24;
+    result |= col.g << 16;
+    result |= col.b << 8;
+    result |= 0xff;
     return result;
 }

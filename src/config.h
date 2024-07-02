@@ -12,14 +12,20 @@
 #define GET_RCOLOR(COL_NAME) (g_rcolor[g_cfg.theme][COL_NAME])
 #define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
 #define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
-#define DRAW_BG(REC, RAD, COL)                                             \
-    do {                                                                   \
-        DrawRectangleRounded(REC, RADIUS_TO_ROUNDNESS(RAD, REC.height),    \
-                             g_cfg.rounded_rec_segments, GET_RCOLOR(COL)); \
-        rlDrawRenderBatchActive();                                         \
+#define DRAW_BG(REC, RAD, COL)                                                                                        \
+    do {                                                                                                              \
+        DrawRectangleRounded(REC, RADIUS_TO_ROUNDNESS(RAD, REC.height), g_cfg.rounded_rec_segments, GET_RCOLOR(COL)); \
+        rlDrawRenderBatchActive();                                                                                    \
     } while (0)
+
+#define DRAW_BGR(REC, RAD, COL)                                                                           \
+    do {                                                                                                  \
+        DrawRectangleRounded(REC, RADIUS_TO_ROUNDNESS(RAD, REC.height), g_cfg.rounded_rec_segments, COL); \
+        rlDrawRenderBatchActive();                                                                        \
+    } while (0)
+
 #define BTN_ICON_SIZE (g_cfg.sstyle.typo.size)
-#define MOUSE_WHEEL_Y_SCROLL_SCALE 16
+#define MOUSE_WHEEL_Y_SCROLL_SCALE 8
 
 typedef struct {
     unsigned window_width;

@@ -211,14 +211,11 @@ static bool is_task_stage_valid(Table_Task_Info_Field stage, char **col_vals) {
     switch (stage) {
         case TBL_TASK_FIELD_ID: {
             return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "task_id") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "1") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "1"));
+                    !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "1") && !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "1"));
         } break;
         case TBL_TASK_FIELD_NAME: {
-            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "name") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "TEXT") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "1"));
+            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "name") && !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
+                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "TEXT") && !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "1"));
         } break;
         case TBL_TASK_FIELD_DATE_CREATED: {
             return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "date_created") &&
@@ -227,32 +224,25 @@ static bool is_task_stage_valid(Table_Task_Info_Field stage, char **col_vals) {
                     !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "1"));
         } break;
         case TBL_TASK_FIELD_DONE: {
-            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "done") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "INT") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "1"));
+            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "done") && !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
+                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "INT") && !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "1"));
         } break;
         case TBL_TASK_FIELD_LEFT: {
-            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "left") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "INT") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "1"));
+            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "left") && !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
+                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "INT") && !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "1"));
         } break;
         case TBL_TASK_FIELD_DILIGENCE: {
             return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "diligence") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "FLOAT") &&
+                    !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") && !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "FLOAT") &&
                     !strcmp(col_vals[TABLE_INFO_KIND_DFLTVALUE], "0"));
         } break;
         case TBL_TASK_FIELD_REST: {
-            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "rest") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
+            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "rest") && !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
                     !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "FLOAT") &&
                     !strcmp(col_vals[TABLE_INFO_KIND_DFLTVALUE], "0"));
         } break;
         case TBL_TASK_FIELD_IDLE: {
-            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "idle") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
+            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "idle") && !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
                     !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "FLOAT") &&
                     !strcmp(col_vals[TABLE_INFO_KIND_DFLTVALUE], "0"));
         } break;
@@ -263,8 +253,7 @@ static bool is_task_stage_valid(Table_Task_Info_Field stage, char **col_vals) {
                     !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "0"));
         } break;
         case TBL_TASK_FIELD_TAG_FK: {
-            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "tag_id") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
+            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "tag_id") && !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "0") &&
                     !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "INTEGER") &&
                     !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "1"));
         } break;
@@ -276,12 +265,10 @@ static bool is_tag_stage_valid(Table_Tag_Info_Field stage, char **col_vals) {
     switch (stage) {
         case TBL_TAG_FIELD_ID: {
             return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "tag_id") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "INTEGER") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "1"));
+                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "INTEGER") && !strcmp(col_vals[TABLE_INFO_KIND_ISPK], "1"));
         } break;
         case TBL_TAG_FIELD_NAME: {
-            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "name") &&
-                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "TEXT"));
+            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "name") && !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "TEXT"));
         } break;
         case TBL_TAG_FIELD_COLOR: {
             return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "color") &&
@@ -291,8 +278,7 @@ static bool is_tag_stage_valid(Table_Tag_Info_Field stage, char **col_vals) {
     return 1;
 }
 
-static int verify_table_task_info_cb(void *stage_arg, int col_len, char **col_val,
-                                     char **col_name) {
+static int verify_table_task_info_cb(void *stage_arg, int col_len, char **col_val, char **col_name) {
     assert(col_len == 6);
     Table_Task_Info_Field *stage = (Table_Task_Info_Field *)stage_arg;
     bool is_valid = is_task_stage_valid(*stage, col_val);
@@ -385,8 +371,8 @@ static int get_default_task_id() {
 
 static void ensure_default_tags_exist(void) {
     char cmd[SQL_CMD_CAP] = {0};
-    snprintf(cmd, SQL_CMD_CAP, "REPLACE INTO tag (tag_id, name, color) VALUES (0, '%s', %u);",
-             "other", g_color[g_cfg.theme][COLOR_SURFACE2]);
+    snprintf(cmd, SQL_CMD_CAP, "REPLACE INTO tag (tag_id, name, color) VALUES (0, '%s', %u);", "other",
+             g_color[g_cfg.theme][COLOR_SURFACE2]);
     db_exec_cmd(cmd, 0, 0);
 }
 
@@ -434,8 +420,7 @@ int db_create_task(const char *name, int done, int left, size_t tag_id) {
     char *write_ptr = &sql_cmd[DB_CREATE_TASK_CMD_PREFIX_LEN - 1];
     memset(write_ptr, 0, SQLCMD_STR_INSERT_CAP - DB_CREATE_TASK_CMD_PREFIX_LEN);
     printf("%ld\n", tag_id);
-    snprintf(write_ptr, SQLCMD_STR_INSERT_CAP, "VALUES ('%s', datetime('now'), %d, %d, %ld)", name,
-             done, left, tag_id);
+    snprintf(write_ptr, SQLCMD_STR_INSERT_CAP, "VALUES ('%s', datetime('now'), %d, %d, %ld)", name, done, left, tag_id);
     db_exec_cmd(sql_cmd, 0, 0);
     int id = sqlite3_last_insert_rowid(g_db);
     return id;
@@ -575,9 +560,7 @@ size_t db_get_streak_data_count(void) {
     return result;
 }
 
-void db_get_streak_data(Streak_Data *out) {
-    db_exec_cmd(SQLCMD_GET_STREAK_DATA, db_get_streak_data_cb, &out);
-}
+void db_get_streak_data(Streak_Data *out) { db_exec_cmd(SQLCMD_GET_STREAK_DATA, db_get_streak_data_cb, &out); }
 
 int db_get_today_activity_cb(void *arg, int len, char **val, char **col) {
     if (!*val) return 0;
@@ -639,8 +622,7 @@ bool db_is_default_task(int id) { return g_default_task_id == id; }
 
 Tag_Id db_create_tag(const char *name, unsigned color) {
     char cmd[SQL_CMD_CAP] = {0};
-    size_t cmd_len =
-        snprintf(cmd, SQL_CMD_CAP, "INSERT INTO tag (name, color) VALUES ('%s', %u);", name, color);
+    size_t cmd_len = snprintf(cmd, SQL_CMD_CAP, "INSERT INTO tag (name, color) VALUES ('%s', %u);", name, color);
     assert(cmd_len);
 
     db_exec_cmd(cmd, 0, 0);

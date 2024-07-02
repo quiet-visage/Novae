@@ -18,8 +18,7 @@
 static void set_current_time_target_secs(Timing_Component *m) {
     switch (m->pomo) {
         case TC_POMO_STATE_FOCUS:
-            m->current_time_target_secs =
-                min_to_sec(g_cfg.clock_focus_mins) + g_cfg.clock_focus_secs;
+            m->current_time_target_secs = min_to_sec(g_cfg.clock_focus_mins) + g_cfg.clock_focus_secs;
             break;
         case TC_POMO_STATE_REST:
             m->current_time_target_secs = min_to_sec(g_cfg.clock_rest_mins) + g_cfg.clock_rest_secs;
@@ -52,8 +51,7 @@ void timing_component_destroy(Timing_Component *m) {
     btn_destroy(&m->skip);
 }
 
-static void handle_buttons(Timing_Component *m, float lbtn_x, float lbtn_y, float rbtn_x,
-                           float rbtn_y) {
+static void handle_buttons(Timing_Component *m, float lbtn_x, float lbtn_y, float rbtn_x, float rbtn_y) {
     if (btn_draw(&m->interrupt, lbtn_x, lbtn_y)) {
         switch (m->state) {
             case TC_STATE_RUNNING: {
@@ -87,8 +85,7 @@ void timing_component_draw_glyphs(Timing_Component *m, float x, float y) {
     char time_numbers[16] = {0};
     snprintf(time_numbers, 15, "%02lu:%02lu", mins, secs);
     size_t time_number_len = strlen(time_numbers);
-    ff_draw_str8(time_numbers, time_number_len, x, y, (float *)g_cfg.global_projection,
-                 g_cfg.bstyle);
+    ff_draw_str8(time_numbers, time_number_len, x, y, (float *)g_cfg.global_projection, g_cfg.bstyle);
 }
 
 // void timing_component_draw_note_glyphs(Timing_Component *m,
@@ -135,8 +132,7 @@ float timing_component_width(Timing_Component *m) {
     float lbtn_width = btn_width(&m->interrupt);
     float rbtn_width = btn_width(&m->skip);
     float chrn_width = timing_component_glyphs_width(m);
-    float width =
-        g_cfg.outer_gap * 6 + fmaxf(lbtn_width + rbtn_width + g_cfg.inner_gap, chrn_width);
+    float width = g_cfg.outer_gap * 6 + fmaxf(lbtn_width + rbtn_width + g_cfg.inner_gap, chrn_width);
     return width;
 }
 
@@ -166,8 +162,7 @@ TC_Return timing_component_draw(Timing_Component *m, float x, float y, float max
     float chrn_width = timing_component_glyphs_width(m);
     float chrn_height = g_cfg.bstyle.typo.size;
 
-    float width =
-        g_cfg.outer_gap * 6 + fmaxf(lbtn_width + rbtn_width + g_cfg.inner_gap, chrn_width);
+    float width = g_cfg.outer_gap * 6 + fmaxf(lbtn_width + rbtn_width + g_cfg.inner_gap, chrn_width);
     float height = g_cfg.outer_gap2 + g_cfg.inner_gap2 + lbtn_height + chrn_height;
     float rad = RADIUS_TO_ROUNDNESS(g_cfg.bg_radius, height);
     Rectangle bg = {x, y, MAX(width, max_width), height};

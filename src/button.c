@@ -2,6 +2,7 @@
 
 #include <rlgl.h>
 
+#include "alpha_inherit.h"
 #include "colors.h"
 #include "config.h"
 #include "fieldfusion.h"
@@ -17,7 +18,7 @@ Btn btn_create(void) {
                .color = {0},
                .glyphs_width = 0,
                .glyphs_height = 0,
-               .flags = 0};
+               .flags = BTN_FLAG_ENABLED};
     ret.motion.f = 1.8;
     ret.motion.z = 0.9;
     ret.motion.r = 0.9;
@@ -88,12 +89,12 @@ bool btn_draw_with_icon(Btn *m, Icon icon, float x, float y) {
         .x = x,
         .y = y,
         .width = btn_width(m),
-        .height = g_style->typo.size+g_cfg.inner_gap,
+        .height = g_style->typo.size + g_cfg.inner_gap,
     };
 
     bool hovering = CheckCollisionPointRec(GetMousePosition(), bg);
     bool act = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-    bool result = hovering && act ? true : false;
+    bool result = m->flags & BTN_FLAG_ENABLED && hovering && act ? true : false;
 
     bool draw_bg = !(m->flags & BTN_FLAG_DONT_DRAW_BG);
     if (draw_bg) {
@@ -109,16 +110,19 @@ bool btn_draw_with_icon(Btn *m, Icon icon, float x, float y) {
         bg.x -= m->motion.position[0] * .5f;
         bg.y -= m->motion.position[1] * .5f;
 
-        DRAW_BG(bg, 0x100, COLOR_SURFACE0);
+        Color color = GET_RCOLOR(COLOR_SURFACE0);
+        color.a = alpha_inherit_get_alpha();
+        DRAW_BGR(bg, 0x100, color);
     }
 
     Texture icon_tex = icon_get(icon);
     Rectangle icon_src = {0, 0, icon_tex.width, icon_tex.width};
     Rectangle icon_dst = {bg.x + g_cfg.btn_pad_horz + m->motion.position[0] * .5,
-                          bg.y + g_cfg.btn_pad_vert + m->motion.position[1] * .5,
-                          BTN_ICON_SIZE + 4.f, BTN_ICON_SIZE + 4.f};
+                          bg.y + g_cfg.btn_pad_vert + m->motion.position[1] * .5, BTN_ICON_SIZE + 4.f,
+                          BTN_ICON_SIZE + 4.f};
     Vector2 icon_origin = {0};
     Color icon_col = GET_RCOLOR(COLOR_SKY);
+    icon_col.a = alpha_inherit_get_alpha();
     DrawTexturePro(icon_tex, icon_src, icon_dst, icon_origin, 0, icon_col);
 
     float fg_x = CENTER(bg.x + BTN_ICON_SIZE, bg.width - BTN_ICON_SIZE, m->glyphs_width);
@@ -129,5 +133,9 @@ bool btn_draw_with_icon(Btn *m, Icon icon, float x, float y) {
 
     return result;
 }
+
+void btn_set_flag(Btn *m, Btn_Flags flag) { m->flags |= flag; }
+
+void btn_unset_flag(Btn *m, Btn_Flags flag) { m->flags &= ~flag; }
 
 void btn_destroy(Btn *m) { ff_glyph_vec_destroy(&m->glyphs); }

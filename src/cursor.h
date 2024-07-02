@@ -23,5 +23,7 @@ typedef struct {
 
 void cursor_initialize(void);
 void cursor_terminate(void);
+void cursor_set_focused(Cursor* m, bool on);
+void cursor_recently_moved(Cursor* m);
 Cursor cursor_new(void);
 void cursor_draw(Cursor* c, float x, float y);

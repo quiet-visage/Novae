@@ -6,8 +6,7 @@
 #include "fieldfusion.h"
 #include "motion.h"
 
-void horizontal_scroll(const C32* buf, size_t len, size_t curs, float* target_scroll,
-                       FF_Style style, float max_w) {
+void horizontal_scroll(const C32* buf, size_t len, size_t curs, float* target_scroll, FF_Style style, float max_w) {
     if (!len) return;
     {  // right horizontal scroll
         size_t column = MIN(curs + 5, len);

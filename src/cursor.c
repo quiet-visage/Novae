@@ -3,8 +3,10 @@
 #include <math.h>
 #include <raylib.h>
 
+#include "alpha_inherit.h"
 #include "config.h"
 #include "motion.h"
+#include "raymath.h"
 
 Cursor cursor_new() {
     Cursor result = {0};
@@ -59,9 +61,18 @@ void cursor_draw(Cursor* this, float x, float y) {
     cursor_handle_alplha_change(this);
 
     motion_update(&this->motion, (float[2]){x, y}, GetFrameTime());
-    DrawRectangleRec((Rectangle){.x = this->motion.position[0],
-                                 .y = this->motion.position[1],
-                                 .width = 2.0f,
-                                 .height = 14.f},
-                     (Color){.r = 0xff, .g = 0xff, .b = 0xff, .a = this->alpha});
+    Color color = GET_RCOLOR(COLOR_TEXT);
+    color.a = MIN(this->alpha, alpha_inherit_get_alpha());
+    DrawRectangleRec(
+        (Rectangle){.x = this->motion.position[0], .y = this->motion.position[1], .width = 2.0f, .height = 14.f},
+        color);
 }
+
+inline void cursor_set_focused(Cursor* m, bool on) {
+    if (on)
+        m->flags |= CURSOR_FLAG_FOCUSED;
+    else
+        m->flags &= ~CURSOR_FLAG_FOCUSED;
+}
+
+inline void cursor_recently_moved(Cursor* m) { m->flags |= CURSOR_FLAG_RECENTLY_MOVED; }

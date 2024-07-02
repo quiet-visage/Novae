@@ -1,7 +1,6 @@
 #include "blur.h"
 
 #include <assert.h>
-#include <math.h>
 #include <raymath.h>
 #include <stdio.h>
 
@@ -24,7 +23,7 @@ void blur_init(void) {
     g_render_tex0 = LoadRenderTexture(w, h);
     g_render_tex1 = LoadRenderTexture(w, h);
     g_render_tex2 = LoadRenderTexture(w, h);
-    g_blur_shader = shader_get(SHADER_HORZ_BLUR);
+    g_blur_shader = shader_get(SHADER_BLUR);
     g_mix_shader = shader_get(SHADER_MIX);
     g_uni_resolution = GetShaderLocation(g_blur_shader, "resolution");
     g_uni_radius = GetShaderLocation(g_blur_shader, "radius");
@@ -43,7 +42,7 @@ void blur_begin(void) {
     ClearBackground(BLANK);
 }
 
-void blur_end(float width, float height, unsigned tap) {
+void blur_end_internal(float width, float height, unsigned tap) {
     assert(tap <= 33);
     EndTextureMode();
 
@@ -53,8 +52,10 @@ void blur_end(float width, float height, unsigned tap) {
     float vresolution = 1080;
     Vector2 vdir = {0., 1.};
 
+    BeginBlendMode(BLEND_ALPHA_PREMULTIPLY);
     for (size_t i = 0; i < tap; i += 1) {
         BeginTextureMode(g_render_tex1);
+        ClearBackground(BLANK);
         BeginShaderMode(g_blur_shader);
         SetShaderValue(g_blur_shader, g_uni_radius, &radius, SHADER_UNIFORM_FLOAT);
         SetShaderValue(g_blur_shader, g_uni_resolution, &hresolution, SHADER_UNIFORM_FLOAT);
@@ -64,6 +65,7 @@ void blur_end(float width, float height, unsigned tap) {
         EndTextureMode();
 
         BeginTextureMode(g_render_tex2);
+        ClearBackground(BLANK);
         BeginShaderMode(g_blur_shader);
         SetShaderValue(g_blur_shader, g_uni_radius, &radius, SHADER_UNIFORM_FLOAT);
         SetShaderValue(g_blur_shader, g_uni_resolution, &vresolution, SHADER_UNIFORM_FLOAT);
@@ -80,10 +82,25 @@ void blur_end(float width, float height, unsigned tap) {
         EndShaderMode();
         EndTextureMode();
     }
+    EndBlendMode();
+}
 
+void blur_end(float width, float height, unsigned tap) {
+    blur_end_internal(width, height, tap);
     RenderTexture rnd = g_render_tex0;
     Rectangle source = {0, rnd.texture.height - height, width, -height};
     Rectangle dest = {0, 0, width, height};
     Vector2 orig = {0, 0};
     DrawTexturePro(rnd.texture, source, dest, orig, 0., WHITE);
+}
+Post_Proc_Draw_Info blur_end_return(float width, float height, unsigned tap) {
+    blur_end_internal(width, height, tap);
+    Rectangle source = {0, g_render_tex0.texture.height - height, width, -height};
+    Rectangle dest = {0, 0, width, height};
+    Post_Proc_Draw_Info result = {
+        .texture = g_render_tex0.texture,
+        .source = source,
+        .dest = dest,
+    };
+    return result;
 }

@@ -1,15 +1,11 @@
-// TODO: DRAW SEARCH BAR
-// TODO: DRAW TAGS
-// TODO: CREATE TAG
-
 #include "tag_selection.h"
 
-#include <assert.h>
 #include <math.h>
 #include <raylib.h>
 #include <raymath.h>
 #include <string.h>
 
+#include "alpha_inherit.h"
 #include "button.h"
 #include "c32_vec.h"
 #include "colors.h"
@@ -23,7 +19,6 @@
 #include "icon.h"
 #include "motion.h"
 #include "tag.h"
-#include "text_view.h"
 
 #define OPEN_VIEW_X_RATIO .5f
 #define HUE_RAD 64.f
@@ -42,13 +37,13 @@ static void draw_hue_wheel(HSV hsv, float cx, float cy, float radius, float ring
             float deg = RAD2DEG * phi + 180;
             HSV hsv = {deg, r / radius, 1.f};
             Color col = hsv2rgb(hsv);
+            col.a = alpha_inherit_get_alpha();
             DrawPixel(x + cx, y + cy, col);
         }
     }
 }
 
-static void draw_saturation_wheel(float hue, float value, float cx, float cy, float radius,
-                                  float ring_width) {
+static void draw_saturation_wheel(float hue, float value, float cx, float cy, float radius, float ring_width) {
     for (float x = -radius; x < radius; x += 1) {
         for (float y = -radius; y < radius; y += 1) {
             float r = sqrt(x * x + y * y);
@@ -57,13 +52,13 @@ static void draw_saturation_wheel(float hue, float value, float cx, float cy, fl
             float deg = hue;
             HSV hsv = {deg, ((RAD2DEG * phi + 180) / 360), value};
             Color col = hsv2rgb(hsv);
+            col.a = alpha_inherit_get_alpha();
             DrawPixel(x + cx, y + cy, col);
         }
     }
 }
 
-static void draw_value_wheel(float hue, float sat, float cx, float cy, float radius,
-                             float ring_width) {
+static void draw_value_wheel(float hue, float sat, float cx, float cy, float radius, float ring_width) {
     for (float x = -radius; x < radius; x += 1) {
         for (float y = -radius; y < radius; y += 1) {
             float r = sqrt(x * x + y * y);
@@ -72,6 +67,7 @@ static void draw_value_wheel(float hue, float sat, float cx, float cy, float rad
             float deg = hue;
             HSV hsv = {deg, sat, (RAD2DEG * phi + 180) / 360};
             Color col = hsv2rgb(hsv);
+            col.a = alpha_inherit_get_alpha();
             DrawPixel(x + cx, y + cy, col);
         }
     }
@@ -80,7 +76,9 @@ static void draw_value_wheel(float hue, float sat, float cx, float cy, float rad
 static void draw_nob(float deg, float cx, float cy, float radius) {
     radius -= HUE_RING_W * .5f;
     Vector2 pos = {radius * cosf((deg - 180) * DEG2RAD) + cx, radius * sinf(-(deg * DEG2RAD)) + cy};
-    DrawRing(pos, HUE_RING_W * .25f, HUE_RING_W * .5f, 0, 360, 64, GET_RCOLOR(COLOR_TEAL));
+    Color color = GET_RCOLOR(COLOR_SURFACE0);
+    color.a = alpha_inherit_get_alpha();
+    DrawRing(pos, HUE_RING_W * .25f, HUE_RING_W * .5f, 0, 360, 64, color);
 }
 
 static float get_mouse_angle(Vector2 origin, float radius) {
@@ -120,13 +118,13 @@ static float get_mouse_angle(Vector2 origin, float radius) {
             angle += 90;
             angle *= -1;
         } else {  // second
-            if (angle == -360) {
+            if (angle == -360)
                 angle = m.y > origin.y ? -270 : -90;
-            } else if (angle == -270) {
+            else if (angle == -270)
                 angle = m.x < origin.x ? 0 : -180;
-            } else {
+            else
                 angle += 270;
-            }
+
             angle *= -1;
         }
     }
@@ -144,6 +142,7 @@ Search_Input search_input_create(void) {
     result.cursor = cursor_new();
     result.edit.limit = MAX_TAG_LEN;
     result.cursor.flags |= CURSOR_FLAG_FOCUSED;
+    editor_unset_flag(&result.edit, EDITOR_HANDLE_HORIZONTAL_SCROLLING);
     editor_set_placeholder(&result.edit, "Tag name");
     return result;
 }
@@ -153,9 +152,8 @@ static void handle_wheel_click(Picker_Wheel* m, float* deg, Vector2 origin) {
     float m_dist_from_cen = Vector2Distance(mouse, origin);
     float r_dist_from_cen = m->radius;
     float r_in_dist_from_cen = m->radius - HUE_RING_W;
-    m->selected =
-        m->selected || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-                        m_dist_from_cen < r_dist_from_cen && m_dist_from_cen > r_in_dist_from_cen);
+    m->selected = m->selected || (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && m_dist_from_cen < r_dist_from_cen &&
+                                  m_dist_from_cen > r_in_dist_from_cen);
     if (m->selected && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
         float angle = get_mouse_angle(origin, m->radius);
         *deg = angle;
@@ -163,9 +161,7 @@ static void handle_wheel_click(Picker_Wheel* m, float* deg, Vector2 origin) {
         m->selected = false;
     }
 }
-float search_input_width(Search_Input* m) {
-    return ff_measure_utf32(m->input.data, m->input.len, *g_style).width;
-}
+float search_input_width(Search_Input* m) { return ff_measure_utf32(m->input.data, m->input.len, *g_style).width; }
 
 bool search_input_changed(Search_Input* m) {
     bool result = m->input.len != m->previous_input_len;
@@ -173,28 +169,8 @@ bool search_input_changed(Search_Input* m) {
     return result;
 }
 
-void search_input_view(Search_Input* m, float x, float y) {
-    editor_handle_input(&m->edit, &m->input);
-
-    if (m->glyphs.len != m->input.len) {
-        ff_print_utf32_vec(&m->glyphs, m->input.data, m->input.len, x, y, *g_style);
-    }
-    ff_set_glyphs_pos(m->glyphs.data, m->glyphs.len, x, y);
-
-    float cursor_x = get_cursor_x(m->input.data, m->input.len, *g_style, m->edit.cursor, x);
-    float cursor_y = y;
-    cursor_draw(&m->cursor, cursor_x, cursor_y);
-
-    if (!m->input.len) {
-        assert(m->edit.placeholder);
-        size_t len = strlen(m->edit.placeholder);
-        FF_Style style = *g_style;
-        style.typo.color = GET_COLOR(COLOR_SURFACE1);
-        ff_draw_str8(m->edit.placeholder, len, x, y, (float*)g_cfg.global_projection, style);
-        return;
-    }
-
-    ff_draw_str32(m->input.data, m->input.len, x, y, (float*)g_cfg.global_projection, *g_style);
+void search_input_view(Search_Input* m, float x, float y, bool enabled) {
+    editor_view(&m->edit, &m->input, x - g_cfg.inner_gap, y, enabled);
 }
 
 void search_input_destroy(Search_Input* m) {
@@ -211,22 +187,24 @@ void begin_open_view_fade_in(Tag_Selection* m) {
     m->target_alpha = 0xff;
 }
 
+void begin_open_view_fade_out(Tag_Selection* m) { m->target_alpha = 0x0; }
+
 Tag_Selection tag_selection_create(void) {
     g_tag_hsv = rgb2hsv(GET_RCOLOR(COLOR_TEAL));
     Tag_Selection result = {0};
-    // result.search=TAG_SELECTION_STATE_OPEN;
     result.tag = db_cache_get_default_tag();
     result.mo = motion_new();
     result.target_alpha = 0x0;
     result.search = search_input_create();
-    begin_open_view_fade_in(&result);
-    result.state = TAG_SELECTION_STATE_OPEN;
+    // begin_open_view_fade_in(&result);
+    result.state = TAG_SELECTION_STATE_COMPACT;
     result.hue_wheel.radius = HUE_RAD;
     result.saturation_wheel.radius = HUE_RAD - HUE_RING_W - 5.f;
     result.value_wheel.radius = HUE_RAD - HUE_RING_W * 2 - 5.f * 2;
     result.add_tag_btn = btn_create();
     result.search_btn = btn_create();
     result.selected = (size_t)-1;
+    result.mo.f = 2.f;
     return result;
 }
 
@@ -237,9 +215,9 @@ void tag_selection_destroy(Tag_Selection* m) {
 }
 
 static void compact_view(Tag_Selection* m, float x, float y) {
-    Rectangle tag_bg = tag_draw(m->tag, x, y);
-    bool clicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-                   CheckCollisionPointRec(GetMousePosition(), tag_bg);
+    Rectangle tag_bg = tag_draw(m->tag, x, y, 0);
+    bool clicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), tag_bg);
+    clicked *= m->state == TAG_SELECTION_STATE_COMPACT;
     if (!clicked) return;
     begin_open_view_fade_in(m);
     m->state = TAG_SELECTION_STATE_OPEN;
@@ -282,22 +260,25 @@ static size_t get_closest_input_match(Tag_Selection* m, Tag* tags, size_t tag_le
 
 static void view_color_picker(Tag_Selection* m, float x, float y) {
     draw_hue_wheel(g_tag_hsv, x, y, HUE_RAD, HUE_RING_W);
-    draw_nob(g_tag_hsv.hue, x, y, HUE_RAD);
     Vector2 orig = {x, y};
     handle_wheel_click(&m->hue_wheel, &g_tag_hsv.hue, orig);
 
     draw_saturation_wheel(g_tag_hsv.hue, g_tag_hsv.value, x, y, SAT_RAD, HUE_RING_W);
-    draw_nob(g_tag_hsv.saturation * 360.f, x, y, SAT_RAD);
     float saturation = g_tag_hsv.saturation * 360.f;
     handle_wheel_click(&m->saturation_wheel, &saturation, orig);
     g_tag_hsv.saturation = saturation / 360.f;
 
     draw_value_wheel(g_tag_hsv.hue, g_tag_hsv.saturation, x, y, m->value_wheel.radius, HUE_RING_W);
-    draw_nob(g_tag_hsv.value * 360.f, x, y, m->value_wheel.radius);
     float value = g_tag_hsv.value * 360.f;
     handle_wheel_click(&m->value_wheel, &value, orig);
     g_tag_hsv.value = value / 360.f;
-    DrawCircleV(orig, .15 * HUE_RAD, hsv2rgb(g_tag_hsv));
+    Color color = hsv2rgb(g_tag_hsv);
+    color.a = alpha_inherit_get_alpha();
+    DrawCircleV(orig, .15 * HUE_RAD, color);
+    rlDrawRenderBatchActive();
+    draw_nob(g_tag_hsv.saturation * 360.f, x, y, SAT_RAD);
+    draw_nob(g_tag_hsv.value * 360.f, x, y, m->value_wheel.radius);
+    draw_nob(g_tag_hsv.hue, x, y, HUE_RAD);
 }
 
 static Rectangle get_open_background(Tag_Selection* m) {
@@ -311,8 +292,7 @@ static Rectangle get_open_background(Tag_Selection* m) {
     return result;
 }
 
-static Rectangle get_search_bg(Tag_Selection* m, float bg_y, float create_tag_btn_x,
-                               float search_str_w) {
+static Rectangle get_search_bg(Tag_Selection* m, float bg_y, float create_tag_btn_x, float search_str_w) {
     Rectangle result = {0};
     result.x = create_tag_btn_x + btn_width(&m->add_tag_btn) + g_cfg.inner_gap * .5;
     result.y = bg_y + g_cfg.outer_gap;
@@ -328,8 +308,7 @@ static float get_search_width(Tag_Selection* m) {
     return max_w;
 }
 
-static void draw_tags(Tag_Selection* m, Tag* tags, size_t tags_len, float x, float y, Rectangle bg,
-                      Tag** result) {
+static void draw_tags(Tag_Selection* m, Tag* tags, size_t tags_len, float x, float y, Rectangle bg, Tag** result) {
     float tags_end = bg.x + bg.width - g_cfg.outer_gap;
     float tag_x = x;
     float tag_y = y;
@@ -343,10 +322,9 @@ static void draw_tags(Tag_Selection* m, Tag* tags, size_t tags_len, float x, flo
             tag_x = x;
             tag_y += g_cfg.inner_gap + tag_height();
         }
-        Rectangle bounds = tag_draw(&tag, tag_x, tag_y);
+        Rectangle bounds = tag_draw(&tag, tag_x, tag_y, 0);
         if (m->selected == i) {
-            DrawRectangleRoundedLines(bounds, 0x100, g_cfg.rounded_rec_segments, 1.f,
-                                      GET_RCOLOR(COLOR_TEAL));
+            DrawRectangleRoundedLines(bounds, 0x100, g_cfg.rounded_rec_segments, 2.f, GET_RCOLOR(COLOR_TEAL));
         }
 
         if (is_mouse_pressed && CheckCollisionPointRec(mouse_pos, bounds)) {
@@ -359,13 +337,16 @@ static void draw_tags(Tag_Selection* m, Tag* tags, size_t tags_len, float x, flo
     }
 }
 
-static Tag* open_view(Tag_Selection* m) {
+static Tag* open_view(Tag_Selection* m, bool enabled) {
     motion_update_x(&m->mo, m->target_alpha, GetFrameTime());
-    if (!m->mo.position[0]) return 0;
+    if (m->mo.position[0] < 0.1) return 0;
     Tag* result = {0};
+    alpha_inherit_begin(m->mo.position[0]);
 
     Rectangle bg = get_open_background(m);
-    DRAW_BG(bg, g_cfg.bg_radius, COLOR_MANTLE);
+    Color color = GET_RCOLOR(COLOR_MANTLE);
+    color.a = alpha_inherit_get_alpha();
+    DRAW_BGR(bg, g_cfg.bg_radius, color);
 
     float search_w = get_search_width(m);
     float left_side_w = search_w + btn_width(&m->search_btn) * 2 + g_cfg.inner_gap * 3;
@@ -376,21 +357,23 @@ static Tag* open_view(Tag_Selection* m) {
     bool add = btn_draw_with_icon(&m->add_tag_btn, ICON_TAG_ADD, create_tag_btn_x, btn_y);
 
     Rectangle search_bg = get_search_bg(m, bg.y, create_tag_btn_x, search_w);
-    DRAW_BG(search_bg, 0x100, COLOR_SURFACE0);
-    draw_underglow(search_bg, hsv2rgb(g_tag_hsv), GET_RCOLOR(COLOR_BASE));
+    Color col = GET_RCOLOR(COLOR_SURFACE0);
+    col.a = alpha_inherit_get_alpha();
+    DRAW_BGR(search_bg, 0x100, col);
+    draw_underglow(search_bg, hsv2rgb(g_tag_hsv));
 
     float search_x = search_bg.x + g_cfg.inner_gap;
     float search_y = CENTER(search_bg.y, search_bg.height, g_style->typo.size);
 
     Tag* tags = db_cache_get_tag_array();
     size_t tags_len = db_cache_get_tag_array_len();
-    search_input_view(&m->search, search_x, search_y);
+    search_input_view(&m->search, search_x, search_y, enabled);
     if (search_input_changed(&m->search)) {
         m->selected = get_closest_input_match(m, tags, tags_len);
     }
 
     create_tag_btn_x = search_bg.x + search_bg.width + g_cfg.inner_gap * .5;
-    btn_draw_with_icon(&m->search_btn, ICON_SEARCH, create_tag_btn_x, btn_y);
+    btn_draw_with_icon(&m->search_btn, ICON_DELETE_FOREVER, create_tag_btn_x, btn_y);
 
     view_color_picker(m, search_bg.x + search_bg.width * .5,
                       bg.y + g_cfg.outer_gap + search_bg.height + g_cfg.inner_gap + HUE_RAD);
@@ -401,8 +384,9 @@ static Tag* open_view(Tag_Selection* m) {
 
     if (IsKeyPressed(KEY_ESCAPE)) {
         m->state = TAG_SELECTION_STATE_COMPACT;
-        return (Tag*)-1;
+        result = (Tag*)-1;
     }
+
     if (IsKeyPressed(KEY_ENTER) && m->selected != (size_t)-1) {
         m->state = TAG_SELECTION_STATE_COMPACT;
         result = &tags[m->selected];
@@ -416,16 +400,15 @@ static Tag* open_view(Tag_Selection* m) {
         db_create_tag(name, hsv2rgb_i(g_tag_hsv));
         db_cache_sync_tags();
     }
+    alpha_inherit_end();
 
+    if (result) begin_open_view_fade_out(m);
     return result;
 }
 
-Tag* tag_selection_view(Tag_Selection* m, float x, float y) {
-    switch (m->state) {
-        case TAG_SELECTION_STATE_COMPACT: compact_view(m, x, y); break;
-        case TAG_SELECTION_STATE_OPEN: return open_view(m);
-    }
-    return 0;
+Tag* tag_selection_view(Tag_Selection* m, float x, float y, bool enabled) {
+    compact_view(m, x, y);
+    return open_view(m, enabled);
 }
 
 Tag* tag_selection_get_selected(Tag_Selection* m) { return m->tag; }

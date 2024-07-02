@@ -25,7 +25,7 @@ typedef struct {
 
 Search_Input search_input_create(void);
 float search_input_width(Search_Input* m);
-void search_input_view(Search_Input* m, float x, float y);
+void search_input_view(Search_Input* m, float x, float y, bool enabled);
 void search_input_destroy(Search_Input* m);
 
 typedef struct {
@@ -49,5 +49,5 @@ typedef struct {
 
 Tag_Selection tag_selection_create(void);
 void tag_selection_destroy(Tag_Selection* m);
-Tag* tag_selection_view(Tag_Selection* m, float x, float y);
+Tag* tag_selection_view(Tag_Selection* m, float x, float y, bool enabled);
 Tag* tag_selection_get_selected(Tag_Selection* m);

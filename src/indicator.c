@@ -17,8 +17,7 @@ void indicator_calculate(Indicator* m, float x, float y, float line_width) {
     m->pivot = PIVOT_RIGHT;
 }
 
-void indicator_calculate_pivoted(Indicator* m, float x, float y, float pivot_x, float pivot_y,
-                                 float line_width) {
+void indicator_calculate_pivoted(Indicator* m, float x, float y, float pivot_x, float pivot_y, float line_width) {
     m->pivot = 0;
     m->diag_begin.x = x;
     m->diag_begin.y = y;

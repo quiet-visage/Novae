@@ -3,8 +3,6 @@
 #include <raylib.h>
 #include <rlgl.h>
 
-#include "button.h"
-#include "check_btn.h"
 #include "clip.h"
 #include "colors.h"
 #include "config.h"
@@ -12,6 +10,7 @@
 #include "fieldfusion.h"
 #include "icon.h"
 #include "motion.h"
+#include "swipe_btn.h"
 #include "tag.h"
 
 #define SIDE_BTN_HOVER_WIDTH_RATIO 0.14f
@@ -23,8 +22,6 @@ static FF_Style* g_style = &g_cfg.sstyle;
 
 Task task_create(void) {
     Task result = {
-        .check_btn = check_btn_create(),
-        .move_up_btn = btn_create(),
         .name = 0,
         .left = 0,
         .done = 0,
@@ -34,13 +31,12 @@ Task task_create(void) {
         .check_btn_mo = motion_new(),
         .up_btn_mo = motion_new(),
         .bar_mo = motion_new(),
+        .swipe = swipe_btn_create(),
     };
-    result.move_up_btn.flags |= BTN_FLAG_DONT_DRAW_BG;
     return result;
 }
 
 void task_destroy(Task* m) {
-    btn_destroy(&m->move_up_btn);
     if (m->name) free(m->name);
 }
 
@@ -63,9 +59,7 @@ void task_set_name(Task* m, C32* name, size_t len) {
     memcpy(m->name, name, size);
 }
 
-inline float task_height(void) {
-    return g_cfg.outer_gap2 + g_cfg.inner_gap2 + g_style->typo.size * 2 + 6.f;
-}
+inline float task_height(void) { return g_cfg.outer_gap2 + g_cfg.inner_gap2 + g_style->typo.size * 2 + 6.f; }
 
 Rectangle rect_insertect(Rectangle a, Rectangle b) {
     Rectangle result = {0};
@@ -77,7 +71,7 @@ Rectangle rect_insertect(Rectangle a, Rectangle b) {
     return result;
 }
 
-static bool draw_move_top_btn(Task* m, Rectangle bg, Rectangle bounds) {
+static bool draw_move_top_btn(Task* m, Rectangle bg, Rectangle bounds, bool enabled) {
     bool result = 0;
     float target_w = m->check_btn_mo.position[0];
     float btn_h = bg.height;
@@ -86,7 +80,7 @@ static bool draw_move_top_btn(Task* m, Rectangle bg, Rectangle bounds) {
     Vector2 mouse = GetMousePosition();
     Rectangle btn_bounds = {.x = bg.x, .y = bg.y, .width = target_w, .height = btn_h};
     Rectangle collision_bounds = rect_insertect(btn_bounds, bounds);
-    bool hover = CheckCollisionPointRec(mouse, collision_bounds);
+    bool hover = enabled && CheckCollisionPointRec(mouse, collision_bounds);
     if (hover) {
         target_w = MAX(bg.width * SIDE_BTN_HOVER_WIDTH_RATIO, SIDE_BTN_MIN_W);
         icon_target_alpha = 0xff;
@@ -111,26 +105,23 @@ static bool draw_move_top_btn(Task* m, Rectangle bg, Rectangle bounds) {
     float icon_w = SIDE_BTN_ICON_SZ;
     float icon_h = SIDE_BTN_ICON_SZ;
     Rectangle icon_src = {0, 0, icon.width, icon.height};
-    Rectangle icon_dst = {bg.x + SIDE_BTN_ICON_OFFSET + btn_w * .15f,
-                          CENTER(bg.y, bg.height, icon_h), icon_w, icon_h};
+    Rectangle icon_dst = {bg.x + SIDE_BTN_ICON_OFFSET + btn_w * .15f, CENTER(bg.y, bg.height, icon_h), icon_w, icon_h};
     Color icon_col = GET_RCOLOR(COLOR_TEXT);
     icon_col.a = m->check_btn_mo.position[1];
     DrawTexturePro(icon, icon_src, icon_dst, (Vector2){0}, 0, icon_col);
-
     return result;
 }
 
-static bool draw_up_btn(Task* m, Rectangle bg, Rectangle bounds) {
+static bool draw_up_btn(Task* m, Rectangle bg, Rectangle bounds, bool enabled) {
     bool result = 0;
     float target_w = m->up_btn_mo.position[0];
     float btn_h = bg.height;
     float icon_target_alpha = 0;
 
     Vector2 mouse = GetMousePosition();
-    Rectangle btn_bounds = {
-        .x = bg.x + bg.width - target_w, .y = bg.y, .width = target_w, .height = btn_h};
+    Rectangle btn_bounds = {.x = bg.x + bg.width - target_w, .y = bg.y, .width = target_w, .height = btn_h};
     Rectangle collision_bounds = rect_insertect(btn_bounds, bounds);
-    bool hover = CheckCollisionPointRec(mouse, collision_bounds);
+    bool hover = enabled && CheckCollisionPointRec(mouse, collision_bounds);
     if (hover) {
         target_w = MAX(bg.width * SIDE_BTN_HOVER_WIDTH_RATIO, SIDE_BTN_MIN_W);
         icon_target_alpha = 0xff;
@@ -164,17 +155,16 @@ static bool draw_up_btn(Task* m, Rectangle bg, Rectangle bounds) {
     return result;
 }
 
-Task_Return_Flags task_draw(Task* m, float x, float y, float max_width, Rectangle bounds) {
-    Task_Return_Flags result = {0};
+Task_Return task_draw(Task* m, float x, float y, float max_width, Rectangle bounds, bool enabled) {
+    Task_Return result = {0};
     Rectangle bg = {.x = x, .y = y, .width = max_width, .height = task_height()};
 
-    clip_begin_rounded(bg.x, bg.y, bg.width, bg.height,
-                       RADIUS_TO_ROUNDNESS(g_cfg.bg_radius, bg.height));
-    DrawRectangleRec(bg, GET_RCOLOR(COLOR_BASE));
+    clip_begin_rounded(bg.x, bg.y, bg.width, bg.height, RADIUS_TO_ROUNDNESS(g_cfg.bg_radius, bg.height));
+    DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
     rlDrawRenderBatchActive();
 
-    bool move_top = draw_move_top_btn(m, bg, bounds);
-    bool move_up = draw_up_btn(m, bg, bounds);
+    bool move_top = draw_move_top_btn(m, bg, bounds, enabled);
+    bool move_up = draw_up_btn(m, bg, bounds, enabled);
 
     float name_w = ff_measure_utf32(m->name, m->name_len, *g_style).width;
     float name_y = bg.y + g_cfg.inner_gap;
@@ -187,6 +177,7 @@ Task_Return_Flags task_draw(Task* m, float x, float y, float max_width, Rectangl
     bar_rec.x = CENTER(bg.x, bg.width, bar_rec.width);
     bar_rec.y = name_y + g_cfg.inner_gap2;
     DrawRectangleRounded(bar_rec, 1.f, 6, GET_RCOLOR(COLOR_SURFACE0));
+
     Rectangle prog_bar_rec = bar_rec;
     float progress = m->left ? (float)m->done / (float)m->left : 0.f;
     progress = MIN(progress, 1.f);
@@ -198,8 +189,9 @@ Task_Return_Flags task_draw(Task* m, float x, float y, float max_width, Rectangl
     float tag_y = bar_rec.y + bar_rec.height + g_cfg.inner_gap;
     Tag* tag = db_cache_get_tag(m->tag_id);
     if (!tag) tag = db_cache_get_default_tag();
-    tag_draw(tag, tag_x, tag_y);
-    clip_end();
+    // clip_begin_rounded(bg.x,bg.y,bg.width,bg.height, 0x400);
+    tag_draw(tag, tag_x, tag_y, bar_rec.width * .25);
+    // clip_end();
 
     if (m->left) {
         C32 str[64] = {0};
@@ -220,9 +212,18 @@ Task_Return_Flags task_draw(Task* m, float x, float y, float max_width, Rectangl
         rlDrawRenderBatchActive();
     }
 
+    if (move_top)
+        result = TASK_MOVE_TOP;
+    else if (move_up)
+        result = TASK_MOVE_UP;
 
-    if (move_top) result |= TASK_MOVE_TOP;
-    if (move_up) result |= TASK_MOVE_UP;
+    int swipe = swipe_btn_view(&m->swipe, bar_rec.x + bar_rec.width * .5, tag_y + tag_height() * .5, ICON_VISIBILY_OFF,
+                               ICON_CHECK, "Toggle visibility", "Mark as done");
+    if (swipe < 0)
+        result = TASK_DELETE;
+    else if (swipe > 0)
+        result = TASK_MARK_DONE;
+    clip_end();
 
     return result;
 }

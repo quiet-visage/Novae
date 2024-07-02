@@ -50,8 +50,8 @@ static size_t get_days_ago(Date date) {
     return secs_diff / 86400;
 }
 
-static void draw_y_axis(float* y_axis_text_width, float y_axis_scale_max, float x, float y,
-                        float vert_peak, float graph_height) {
+static void draw_y_axis(float* y_axis_text_width, float y_axis_scale_max, float x, float y, float vert_peak,
+                        float graph_height) {
     for (size_t i = Y_AXIS_SCALE_COUNT + 1; i-- > 0;) {
         float y_perc = (float)(i) / (float)Y_AXIS_SCALE_COUNT;
         float ty = y + graph_height - graph_height * y_perc;
@@ -67,32 +67,30 @@ static void draw_y_axis(float* y_axis_text_width, float y_axis_scale_max, float 
     }
 }
 
-static void draw_x_axis(float x, float y, float graph_width, Time_Activity* activity,
-                        size_t activity_count) {
+static void draw_x_axis(float x, float y, float graph_width, Time_Activity* activity, size_t activity_count) {
     size_t sample_count = MIN(activity_count, GRAPH_SAMPLE_SIZE);
     if (sample_count < 2) sample_count = 2;
     int scale_count = X_AXIS_SCALE_COUNT;
     if (sample_count <= scale_count) scale_count = sample_count - 1;
-    // assert(sample_count >= 2);
 
     for (size_t i = scale_count + 1; i-- > 0;) {
         float perc = (float)i / scale_count;
         float tx = x + graph_width * perc;
 
-        size_t index_offset = sample_count * (1 - perc);
-        if (index_offset > activity_count) index_offset = activity_count;
-        Date sample_date = activity[(size_t)(activity_count - index_offset)].date;
-        size_t days_ago = i == scale_count ? 0 : get_days_ago(sample_date);
+        size_t sample_idx = (size_t)round(((float)activity_count - 1) * perc);
+        assert(sample_idx < activity_count);
+        Date sample_date = activity[sample_idx].date;
+        size_t days_ago = get_days_ago(sample_date);
 
         char text[32] = {0};
         size_t text_len = snprintf(text, 32, days_ago ? "-%ld" : "%ld", days_ago);
-        ff_draw_str8(text, text_len, tx, y + GRAPH_HEIGHT - g_style->typo.size,
-                     (float*)g_cfg.global_projection, *g_style);
+        ff_draw_str8(text, text_len, tx, y + GRAPH_HEIGHT - g_style->typo.size, (float*)g_cfg.global_projection,
+                     *g_style);
     }
 }
 
-static void draw_graph_gradient(size_t points_count, Vector2* points, float x, float y,
-                                float graph_width, float graph_height) {
+static void draw_graph_gradient(size_t points_count, Vector2* points, float x, float y, float graph_width,
+                                float graph_height) {
     clip_begin_custom_shape();
     for (size_t i = points_count; i-- > 0;) {
         if (i) {
@@ -111,9 +109,9 @@ static void draw_graph_gradient(size_t points_count, Vector2* points, float x, f
     clip_end();
 }
 
-static void get_points(float x, float y, float graph_w, float graph_h, float y_scale_max,
-                       size_t idx_offset, Time_Activity* activities, size_t points_count,
-                       Vector2* points, bool has_fake_point, bool graph_overflows) {
+static void get_points(float x, float y, float graph_w, float graph_h, float y_scale_max, size_t idx_offset,
+                       Time_Activity* activities, size_t points_count, Vector2* points, bool has_fake_point,
+                       bool graph_overflows) {
     for (size_t i = points_count; i-- > 0;) {
         Vector2* point = &points[i];
         bool is_today = i == points_count - 1;
@@ -152,10 +150,8 @@ inline float time_activity_graph_max_width(void) { return GRAPH_WIDTH + g_cfg.ou
 inline float time_activity_graph_max_height(void) { return GRAPH_HEIGHT + g_cfg.outer_gap2; }
 
 void time_activity_graph_draw(float x, float y) {
-    Rectangle bg = {.x = x,
-                    .y = y,
-                    .width = time_activity_graph_max_width(),
-                    .height = time_activity_graph_max_height()};
+    Rectangle bg = {
+        .x = x, .y = y, .width = time_activity_graph_max_width(), .height = time_activity_graph_max_height()};
     DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
     x += g_cfg.outer_gap;
     y += g_cfg.outer_gap;
@@ -191,8 +187,8 @@ void time_activity_graph_draw(float x, float y) {
     }
 
     Vector2 points[points_count];
-    get_points(x, y, graph_w, graph_h, y_scale_max, activity_idx_offset, activities, points_count,
-               points, has_fake_point, graph_overflows);
+    get_points(x, y, graph_w, graph_h, y_scale_max, activity_idx_offset, activities, points_count, points,
+               has_fake_point, graph_overflows);
 
     draw_graph_gradient(points_count, points, x, y, graph_w, graph_h);
 
@@ -215,8 +211,7 @@ void time_activity_graph_draw(float x, float y) {
     bool hovering_over_fake_point = has_fake_point && point_being_hovered == 0;
     if (hovering && !hovering_over_fake_point) {
         if (has_fake_point) point_being_hovered -= 1;
-        size_t hover_data_idx =
-            graph_overflows ? point_being_hovered + activity_idx_offset : point_being_hovered;
+        size_t hover_data_idx = graph_overflows ? point_being_hovered + activity_idx_offset : point_being_hovered;
         Time_Activity* hover_data = &activities[hover_data_idx];
 
         int focus_mins = hover_data->activity.focus / 60.f;
@@ -226,8 +221,7 @@ void time_activity_graph_draw(float x, float y) {
         char diligence_buf[64] = {0};
 
         if (focus_hours) {
-            snprintf(diligence_buf, 64, "diligence: %dhours %dmins %.0fsecs", focus_hours,
-                     focus_mins, focus_secs);
+            snprintf(diligence_buf, 64, "diligence: %dhours %dmins %.0fsecs", focus_hours, focus_mins, focus_secs);
         } else if (focus_mins) {
             snprintf(diligence_buf, 64, "diligence: %dmins %.0fsecs", focus_mins, focus_secs);
         } else {
@@ -236,15 +230,14 @@ void time_activity_graph_draw(float x, float y) {
 
         char days_ago_buf[64] = {0};
         size_t days_ago = get_days_ago(hover_data->date);
-        size_t days_ago_buf_len = !days_ago ? snprintf(days_ago_buf, 64, "today")
-                                            : snprintf(days_ago_buf, 64, "%ld days ago", days_ago);
+        size_t days_ago_buf_len =
+            !days_ago ? snprintf(days_ago_buf, 64, "today") : snprintf(days_ago_buf, 64, "%ld days ago", days_ago);
 
         {
             float fw = ff_measure_utf8(diligence_buf, strlen(diligence_buf), *g_style).width;
             Indicator indicator = indicator_create();
             float line_width = fw * 1.25;
-            indicator_calculate(&indicator, points[point_being_hovered].x,
-                                points[point_being_hovered].y, line_width);
+            indicator_calculate(&indicator, points[point_being_hovered].x, points[point_being_hovered].y, line_width);
 
             Color col_1 = GET_RCOLOR(COLOR_CRUST);
             Color col_0 = col_1;
@@ -257,14 +250,11 @@ void time_activity_graph_draw(float x, float y) {
             DrawRectangleGradientV(rec.x, rec.y, rec.width, rec.height, col_0, col_1);
             rlDrawRenderBatchActive();
             indicator_draw_faded(&indicator, GET_RCOLOR(COLOR_TEAL));
-            ff_draw_str8(diligence_buf, strlen(diligence_buf),
-                         indicator.line_begin.x + line_width * .5f - fw * .5f,
-                         indicator.line_end.y - g_style->typo.size - 4.0f,
-                         (float*)g_cfg.global_projection, *g_style);
-            ff_draw_str8(days_ago_buf, days_ago_buf_len,
-                         indicator.line_begin.x + line_width * .5f - fw * .5f,
-                         indicator.line_end.y - g_style->typo.size - 13.f - 4.0f,
-                         (float*)g_cfg.global_projection, *g_style);
+            ff_draw_str8(diligence_buf, strlen(diligence_buf), indicator.line_begin.x + line_width * .5f - fw * .5f,
+                         indicator.line_end.y - g_style->typo.size - 4.0f, (float*)g_cfg.global_projection, *g_style);
+            ff_draw_str8(days_ago_buf, days_ago_buf_len, indicator.line_begin.x + line_width * .5f - fw * .5f,
+                         indicator.line_end.y - g_style->typo.size - 13.f - 4.0f, (float*)g_cfg.global_projection,
+                         *g_style);
         }
     }
 }

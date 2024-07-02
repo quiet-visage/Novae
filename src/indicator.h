@@ -21,6 +21,5 @@ typedef struct {
 
 Indicator indicator_create(void);
 void indicator_calculate(Indicator* m, float x, float y, float line_width);
-void indicator_calculate_pivoted(Indicator* m, float x, float y, float pivot_x, float pivot_y,
-                                 float line_width);
+void indicator_calculate_pivoted(Indicator* m, float x, float y, float pivot_x, float pivot_y, float line_width);
 void indicator_draw_faded(Indicator* m, Color base);

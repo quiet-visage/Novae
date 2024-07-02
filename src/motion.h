@@ -11,6 +11,7 @@ typedef struct {
 } Motion;
 
 Motion motion_new();
+void motion_hard_set(Motion* m, float x, float y);
 void motion_update(Motion* m, float target[2], float delta_time);
 void motion_update_x(Motion* m, float target, float delta_time);
 void motion_update_y(Motion* m, float target, float delta_time);

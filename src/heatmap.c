@@ -76,8 +76,7 @@ static const char* get_month_name(Month month) {
 static inline Date get_current_date(void) {
     time_t now = time(0);
     struct tm* local_tm = localtime(&now);
-    Date date = {
-        .day = local_tm->tm_mday, .month = local_tm->tm_mon, .year = local_tm->tm_year + 1900};
+    Date date = {.day = local_tm->tm_mday, .month = local_tm->tm_mon, .year = local_tm->tm_year + 1900};
     return date;
 }
 
@@ -125,15 +124,13 @@ static bool is_today(int day, int month, int year) {
     time_t now;
     time(&now);
     struct tm* now_local = localtime(&now);
-    return (now_local->tm_mday == day) && (now_local->tm_mon == month) &&
-           (now_local->tm_year == (year - 1900));
+    return (now_local->tm_mday == day) && (now_local->tm_mon == month) && (now_local->tm_year == (year - 1900));
 }
 
 #define PAD (g_cfg.inner_gap * .25f)
 #define SIZE (6.0f)
 
-#define COLOR_LERP(A, B, P) \
-    ((Color){Lerp(A.r, B.r, P), Lerp(A.g, B.g, P), Lerp(A.b, B.b, P), Lerp(A.a, B.a, P)})
+#define COLOR_LERP(A, B, P) ((Color){Lerp(A.r, B.r, P), Lerp(A.g, B.g, P), Lerp(A.b, B.b, P), Lerp(A.a, B.a, P)})
 static void draw_month(float ix, float iy, int month, int year) {
     float x = ix;
     float y = iy;
@@ -169,8 +166,7 @@ static void draw_month(float ix, float iy, int month, int year) {
             Color cold = GET_RCOLOR(COLOR_SKY);
             cold.a = 0x66;
             Color hot = GET_RCOLOR(COLOR_SKY);
-            float lerp_value =
-                Clamp(date_activity->focus / db_cache_get_max_diligence(), 0.0f, 1.0f);
+            float lerp_value = Clamp(date_activity->focus / db_cache_get_max_diligence(), 0.0f, 1.0f);
             color = COLOR_LERP(cold, hot, lerp_value);
             hover_data[hover_data_len].act = date_activity;
             hover_data[hover_data_len].rec_idx = i;
@@ -188,13 +184,11 @@ static void draw_month(float ix, float iy, int month, int year) {
         if (!hovering) continue;
 
         char thing[32] = {0};
-        snprintf(thing, 32, "focus: %d mins, %.1f secs", (int)(data->act->focus / 60.f),
-                 fmodf(data->act->focus, 60.f));
+        snprintf(thing, 32, "focus: %d mins, %.1f secs", (int)(data->act->focus / 60.f), fmodf(data->act->focus, 60.f));
         float fw = ff_measure_utf8(thing, strlen(thing), *g_style).width;
         float fh = g_style->typo.size;
 
-        DrawRectangle(mouse.x, mouse.y, fw + g_cfg.inner_gap2, fh + g_cfg.inner_gap2,
-                      GET_RCOLOR(COLOR_SURFACE0));
+        DrawRectangle(mouse.x, mouse.y, fw + g_cfg.inner_gap2, fh + g_cfg.inner_gap2, GET_RCOLOR(COLOR_SURFACE0));
         rlDrawRenderBatchActive();
 
         ff_draw_str8(thing, strlen(thing), mouse.x + g_cfg.inner_gap, mouse.y + g_style->typo.size,
@@ -211,9 +205,7 @@ static void draw_month_name(Month month, float x, float month_w, float y) {
 
 inline static float month_max_width(void) { return (SIZE + PAD) * MONTH_ROWS; }
 inline static float month_name_height(void) { return (g_style->typo.size + HEATMAP_MONTH_GAP); }
-inline static float month_max_height(void) {
-    return (SIZE + PAD) * MONTH_COLUMNS + month_name_height();
-}
+inline static float month_max_height(void) { return (SIZE + PAD) * MONTH_COLUMNS + month_name_height(); }
 inline float heatmap_max_width(void) {
     return month_max_width() * HEATMAP_COLUMNS + HEATMAP_MONTH_GAP * (HEATMAP_COLUMNS - 1);
 }
@@ -242,8 +234,7 @@ void heatmap_draw(float x, float y) {
     float month_h = month_max_height();
 
     float max_w = heatmap_max_width();
-    Rectangle bg = {
-        .x = x, .y = y, .width = max_w + g_cfg.outer_gap2, .height = month_h + g_cfg.outer_gap2};
+    Rectangle bg = {.x = x, .y = y, .width = max_w + g_cfg.outer_gap2, .height = month_h + g_cfg.outer_gap2};
     DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
 
     x = x + g_cfg.outer_gap;

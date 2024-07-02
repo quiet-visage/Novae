@@ -40,6 +40,6 @@ void main() {
 	sum += texture2D(texture0, vec2(tc.x + 4.0*blur*hstep, tc.y + 4.0*blur*vstep)) * 0.0162162162;
 
 	//discard alpha for our simple demo, multiply by vertex color and return
-	gl_FragColor = fragColor * sum.rgb;
+	gl_FragColor = fragColor * sum;
 }
 

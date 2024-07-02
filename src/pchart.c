@@ -89,11 +89,8 @@ static void update_weights() {
     g_pchart.segment_weight[small] = -1;
 }
 
-static void draw_segment_info(float x, float y, Segment_Kind seg, float out_radius, float angle0,
-                              float angle1) {
-    Color_Name col_name = seg == SEGMENT_FOCUS  ? COLOR_BLUE
-                          : seg == SEGMENT_IDLE ? COLOR_SURFACE1
-                                                : COLOR_TEAL;
+static void draw_segment_info(float x, float y, Segment_Kind seg, float out_radius, float angle0, float angle1) {
+    Color_Name col_name = seg == SEGMENT_FOCUS ? COLOR_BLUE : seg == SEGMENT_IDLE ? COLOR_SURFACE1 : COLOR_TEAL;
     Color col = GET_RCOLOR(col_name);
 
     Indicator indicator = indicator_create();
@@ -114,9 +111,8 @@ static void draw_segment_info(float x, float y, Segment_Kind seg, float out_radi
     float line_width = text_width * LINE_WIDTH_SCALE;
     indicator_calculate_pivoted(&indicator, indicator_pos.x, indicator_pos.y, x, y, line_width);
 
-    float text_x = indicator.pivot & PIVOT_LEFT
-                       ? indicator.line_begin.x - line_width * .5f - text_width * .5f
-                       : indicator.line_begin.x + line_width * .5f - text_width * .5f;
+    float text_x = indicator.pivot & PIVOT_LEFT ? indicator.line_begin.x - line_width * .5f - text_width * .5f
+                                                : indicator.line_begin.x + line_width * .5f - text_width * .5f;
     float text_y = indicator.line_end.y - g_style->typo.size - 4;
     ff_draw_str8(text, text_len, text_x, text_y, (float*)g_cfg.global_projection, *g_style);
 
@@ -127,8 +123,7 @@ float pchart_max_width(void) {
     char max_str[] = "Diligence";
     float max_str_w = ff_measure_utf8(max_str, sizeof(max_str), *g_style).width;
     float max_line_w = max_str_w * LINE_WIDTH_SCALE;
-    return (PCHART_IN_RAD + PCHART_OUT_RAD + INDICATOR_DIAG_WIDTH + max_line_w) * 2 +
-           g_cfg.outer_gap2;
+    return (PCHART_IN_RAD + PCHART_OUT_RAD + INDICATOR_DIAG_WIDTH + max_line_w) * 2 + g_cfg.outer_gap2;
 }
 
 float pchart_max_height(void) { return TOTAL_RADIUS * 2 + g_cfg.outer_gap2; }
@@ -154,8 +149,7 @@ void pchart_draw(float x, float y) {
         float radius_step = PCHART_RAD_STEP * g_pchart.segment_weight[i];
         float out_radius = PCHART_OUT_RAD + radius_step;
         DrawRing(pos, PCHART_IN_RAD, out_radius, angle_start, angle_end, RING_SEGMENTS, color[i]);
-        if (g_pchart.segment_perc[i])
-            draw_segment_info(pos.x, pos.y, i, out_radius, angle_start, segment_angle);
+        if (g_pchart.segment_perc[i]) draw_segment_info(pos.x, pos.y, i, out_radius, angle_start, segment_angle);
         angle_start += segment_angle;
     }
 }

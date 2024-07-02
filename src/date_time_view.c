@@ -11,9 +11,7 @@
 static FF_Style *g_time_style = &g_cfg.bstyle;
 static FF_Style *g_side_style = &g_cfg.mstyle;
 
-float date_time_max_height(void) {
-    return g_cfg.inner_gap + g_time_style->typo.size + g_cfg.outer_gap2;
-}
+float date_time_max_height(void) { return g_cfg.inner_gap + g_time_style->typo.size + g_cfg.outer_gap2; }
 
 void date_time_view(float x, float y, float timer_secs) {
     time_t now = time(0);
@@ -66,10 +64,9 @@ void date_time_view(float x, float y, float timer_secs) {
     ff_draw_str8(time_str, time_str_len, cx, cy, (float *)g_cfg.global_projection, *g_time_style);
     float rcx = bg.x + bg.width + g_cfg.inner_gap + g_cfg.outer_gap;
     float rcy = CENTER(bg.y, bg.height, g_side_style->typo.size * 2);
-    ff_draw_str8(week_day_str, week_day_str_len, rcx, rcy, (float *)g_cfg.global_projection,
+    ff_draw_str8(week_day_str, week_day_str_len, rcx, rcy, (float *)g_cfg.global_projection, *g_side_style);
+    ff_draw_str8(month_str, month_str_len, rcx, rcy + g_side_style->typo.size, (float *)g_cfg.global_projection,
                  *g_side_style);
-    ff_draw_str8(month_str, month_str_len, rcx, rcy + g_side_style->typo.size,
-                 (float *)g_cfg.global_projection, *g_side_style);
     // float timer_finish_str_y = cy + btypo.size + g_cfg.inner_gap;
     // float total_width = timer_str_w + month_str_w + week_day_str_w;
     // float timer_finish_str_x =
