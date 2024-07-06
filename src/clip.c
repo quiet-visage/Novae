@@ -12,7 +12,7 @@ short g_layer = 0;
 bool g_layer_was_previously_used[256] = {0};
 
 void clip_init(void) {
-    // glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
 }
 
@@ -27,7 +27,7 @@ void clip_begin_custom_shape(void) {
     g_layer += 1;
     if (g_layer == 1) {
         // glClear(GL_STENCIL_BUFFER_BIT);
-        glClear(GL_DEPTH_BUFFER_BIT);
+        glClear(GL_STENCIL_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glStencilFunc(GL_ALWAYS, g_layer, 0xff);
         glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
     } else {
@@ -52,13 +52,17 @@ void clip_begin(float x, float y, float w, float h) {
     rlDrawRenderBatchActive();
     g_layer += 1;
     if (g_layer == 1) {
-        glClear(GL_STENCIL_BUFFER_BIT);
+        glStencilMask(0xff);
+        glClear( GL_DEPTH_BUFFER_BIT);
         glStencilFunc(GL_ALWAYS, g_layer, 0xff);
         glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
     } else {
         if (g_layer_was_previously_used[g_layer]) {
+            glStencilMask(1);
+            glClear(GL_STENCIL_BUFFER_BIT);
+
             glStencilFunc(GL_EQUAL, g_layer - 1, 0xff);
-            glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
         } else {
             glStencilFunc(GL_EQUAL, g_layer - 1, 0xff);
             glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
@@ -69,7 +73,7 @@ void clip_begin(float x, float y, float w, float h) {
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     glStencilMask(0xff);
-    DrawRectangle(x, y, w, h, WHITE);
+    DrawRectangle(x, y, w, h, BLACK);
     rlDrawRenderBatchActive();
 
     glStencilMask(0x00);
@@ -87,8 +91,18 @@ void clip_begin_rounded(float x, float y, float w, float h, float rad) {
         glStencilFunc(GL_ALWAYS, g_layer, 0xff);
         glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
     } else {
-        glStencilFunc(GL_EQUAL, g_layer - 1, 0xff);
-        glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+        if (g_layer_was_previously_used[g_layer]) {
+            glStencilMask(1);
+            glClear(GL_STENCIL_BUFFER_BIT);
+
+            glStencilFunc(GL_EQUAL, g_layer - 1, 0xff);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+        } else {
+            glStencilFunc(GL_EQUAL, g_layer - 1, 0xff);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+        }
+
+        g_layer_was_previously_used[g_layer] = 1;
     }
 
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
@@ -104,6 +118,14 @@ void clip_end(void) {
     assert(g_layer < 0xff && g_layer >= 0);
     rlDrawRenderBatchActive();
     if (!g_layer) return;
+
+    if (g_layer < 256) {
+        size_t clear_idx = g_layer + 1;
+        bool* clear_ptr = &g_layer_was_previously_used[clear_idx];
+        size_t clear_sz = (256 - clear_idx) * sizeof(*g_layer_was_previously_used);
+        memset(clear_ptr, 0, clear_sz);
+    }
+
     if (g_layer == 1) {
         glStencilMask(0xff);
         glClear(GL_STENCIL_BUFFER_BIT);

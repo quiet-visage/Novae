@@ -48,7 +48,7 @@ Rectangle tag_draw(Tag* m, float x, float y, float max_w) {
     DrawRectangleRounded(bg, 1.0f, g_cfg.rounded_rec_segments, bg_color);
     rlDrawRenderBatchActive();
 
-    clip_begin_rounded(bg.x, bg.y, bg.width, bg.height, 0x400);
+    // clip_begin_rounded(bg.x, bg.y, bg.width, bg.height, 0x400);
     float fg_x = CENTER(bg.x, bg.width, core_w);
     float fg_y = CENTER(bg.y, bg.height, core_h);
     size_t name_len = strlen(m->name);
@@ -60,6 +60,6 @@ Rectangle tag_draw(Tag* m, float x, float y, float max_w) {
         DrawRectangleGradientH(bg.x + bg.width - g_cfg.inner_gap2, bg.y, g_cfg.inner_gap2, bg.height, col1, bg_color);
     }
     draw_underglow(bg, GetColor(m->color));
-    clip_end();
+    // clip_end();
     return bg;
 }

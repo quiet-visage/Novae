@@ -67,18 +67,6 @@ float g_batch_flush_delay = BATCH_FLUSH_DELAY;
 Tag_Selection g_tag_selection = {0};
 Focus_Flags g_focus = FOCUS_FLAG_TASK_CREATOR;
 
-int cmp_t(const void *a, const void *b) {
-    const Task *ap = a;
-    const Task *bp = b;
-    return (ap->done >= ap->left) - (bp->done >= bp->left);
-}
-
-int cmp_t0(const void *a, const void *b) {
-    const float *ap = a;
-    const float *bp = b;
-    return *bp - *ap;
-}
-
 void main_init() {
     config_init();
     color_init();
@@ -277,28 +265,44 @@ void main_loop() {
             shader_reload();
         }
 
-        Rectangle r1 = {100, 100, 400, 400};
-        Rectangle r2 = {200, 100, 400, 400};
-        Rectangle rr0 = {100, 100, 200, 200};
-        Rectangle rr1 = {200, 100, 200, 100};
-        DrawRectangleLines(r1.x, r1.y, r1.width, r1.height, RED);
-        DrawRectangleLines(r2.x, r2.y, r2.width, r2.height, BLUE);
-        DrawRectangleLines(rr0.x, rr0.y, rr0.width, rr0.height, GREEN);
-        DrawRectangleLines(rr1.x, rr1.y, rr1.width, rr1.height, YELLOW);
+        
+        /*
+            Rectangle r1 = {100, 100, 400, 400};
+            Rectangle r2 = {90, 95, 400, 400};
+            Rectangle rr0 = {100, 100, 200, 200};
+            Rectangle rr1 = {190, 90, 200, 100};
+            Rectangle rr2 = {340, 90, 200, 100};
+            DrawRectangleLines(r1.x, r1.y, r1.width, r1.height, RED);
+            DrawRectangleLines(r2.x, r2.y, r2.width, r2.height, BLUE);
+            DrawRectangleLines(rr0.x, rr0.y, rr0.width, rr0.height, GREEN);
+            DrawRectangleLines(rr1.x, rr1.y, rr1.width, rr1.height, YELLOW);
+            DrawRectangleLines(rr2.x, rr2.y, rr2.width, rr2.height, MAGENTA);
 
-        clip_begin(r1.x, r1.y, r1.width, r1.height);
-        clip_begin(r2.x, r2.y, r2.width, r2.height);
 
-        clip_begin(rr0.x, rr0.y, rr0.width, rr0.height);
-        DrawCircle(rr0.x, rr0.y, 128, GREEN);
-        clip_end();
+            clip_begin(r1.x, r1.y, r1.width, r1.height);
+            clip_begin(r2.x, r2.y, r2.width, r2.height);
 
-        clip_begin(rr1.x, rr1.y, rr1.width, rr1.height);
-        DrawCircle(rr1.x, rr1.y, 150, YELLOW);
-        clip_end();
+            clip_begin(rr0.x, rr0.y, rr0.width, rr0.height);
+            DrawCircle(rr0.x, rr0.y, 128, GREEN);
+            clip_end();
 
-        clip_end();
-        clip_end();
+            clip_begin(rr1.x, rr1.y, rr1.width, rr1.height);
+            Color c= YELLOW;
+            c.a=0xab;
+            DrawCircle(rr1.x, rr1.y, 150, c);
+            clip_end();
+
+            clip_begin(rr2.x, rr2.y, rr2.width, rr2.height);
+            c= MAGENTA;
+            c.a=0xab;
+            DrawCircle(rr2.x, rr2.y, 150, c);
+            clip_end();
+
+
+            clip_end();
+            clip_end();
+        */
+        
 
         handle_tag_selection(task_creator_ret.tag_sel_x, task_creator_ret.tag_sel_y);
         end_frame();
