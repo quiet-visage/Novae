@@ -182,11 +182,11 @@ TC_Return timing_component_draw(Timing_Component *m, float x, float y, float max
     // timing_component_draw_note_glyphs(m, x + width * .55f,
     //                                   y + height - 20);
     float target[2] = {width * m->perc_done, 0};
-    clip_begin_rounded(bg.x, bg.y, bg.width, bg.height, rad);
+    // clip_begin_rounded(bg.x, bg.y, bg.width, bg.height, rad);
     motion_update(&m->mo, target, GetFrameTime());
     Color bar_col = GET_RCOLOR(COLOR_SKY);
     DrawRectangle(x, y + height - 10, m->mo.position[0], 10, bar_col);
-    clip_end();
+    // clip_end();
 
     return ret;
 }

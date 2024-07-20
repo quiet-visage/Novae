@@ -1,4 +1,5 @@
 /*
+TODO: custom shape will be done by texture drawing
 NOTE: may be a great idea to implement a complete calendar o the right side
       with a scroll bar
     : statistics tab would be great on the left side
@@ -227,84 +228,78 @@ void main_loop() {
             }
         }
 
-        Task *task = 0;
-        if (g_task_list.tasks.len)
-            task = task_list_get_prioritized(&g_task_list);
-        else
-            task = &g_default_task;
+        // Task *task = 0;
+        // if (g_task_list.tasks.len)
+        //     task = task_list_get_prioritized(&g_task_list);
+        // else
+        //     task = &g_default_task;
 
-        assert(task);
-        synchronize_task_time_spent(task, timing_comp_ret);
-        if (timing_comp_ret.finished == TC_FIN_FOCUS) {
-            db_incr_done(task->db_id);
-            task->done += 1;
-            if (task->done == task->left) db_set_completed(task->db_id);
-        }
+        // assert(task);
+        // synchronize_task_time_spent(task, timing_comp_ret);
+        // if (timing_comp_ret.finished == TC_FIN_FOCUS) {
+        //     db_incr_done(task->db_id);
+        //     task->done += 1;
+        //     if (task->done == task->left) db_set_completed(task->db_id);
+        // }
 
-        float date_time_x = timing_comp_x + timing_comp_width + g_cfg.inner_gap;
-        float date_time_y = g_cfg.inner_gap;
-        date_time_view(date_time_x, g_cfg.inner_gap, g_timing_comp.chrono.secs_left);
+        // float date_time_x = timing_comp_x + timing_comp_width + g_cfg.inner_gap;
+        // float date_time_y = g_cfg.inner_gap;
+        // date_time_view(date_time_x, g_cfg.inner_gap, g_timing_comp.chrono.secs_left);
 
-        float pchart_w = pchart_max_width();
-        float pchart_x = timing_comp_x - pchart_w - g_cfg.inner_gap;
-        float pchart_y = g_cfg.inner_gap;
-        pchart_draw(pchart_x, g_cfg.inner_gap);
+        // float pchart_w = pchart_max_width();
+        // float pchart_x = timing_comp_x - pchart_w - g_cfg.inner_gap;
+        // float pchart_y = g_cfg.inner_gap;
+        // pchart_draw(pchart_x, g_cfg.inner_gap);
 
-        float streak_x = pchart_x + pchart_w * .5f;
-        float streak_y = g_cfg.inner_gap + pchart_max_height() * .5f;
-        streak_draw(streak_x, streak_y);
+        // float streak_x = pchart_x + pchart_w * .5f;
+        // float streak_y = g_cfg.inner_gap + pchart_max_height() * .5f;
+        // streak_draw(streak_x, streak_y);
 
-        float time_activity_x = timing_comp_x - time_activity_graph_max_width() - g_cfg.inner_gap;
-        float time_activity_y = pchart_max_height() + pchart_y + g_cfg.inner_gap;
-        time_activity_graph_draw(time_activity_x, time_activity_y);
+        // float time_activity_x = timing_comp_x - time_activity_graph_max_width() - g_cfg.inner_gap;
+        // float time_activity_y = pchart_max_height() + pchart_y + g_cfg.inner_gap;
+        // time_activity_graph_draw(time_activity_x, time_activity_y);
 
-        float heatmap_x = date_time_x;
-        heatmap_draw(heatmap_x, date_time_y + date_time_max_height() + g_cfg.inner_gap);
+        // float heatmap_x = date_time_x;
+        // heatmap_draw(heatmap_x, date_time_y + date_time_max_height() + g_cfg.inner_gap);
 
-        if (IsKeyPressed(KEY_F5)) {
-            shader_reload();
-        }
+        // if (IsKeyPressed(KEY_F5)) {
+        //     shader_reload();
+        // }
 
-        
-        /*
-            Rectangle r1 = {100, 100, 400, 400};
-            Rectangle r2 = {90, 95, 400, 400};
-            Rectangle rr0 = {100, 100, 200, 200};
-            Rectangle rr1 = {190, 90, 200, 100};
-            Rectangle rr2 = {340, 90, 200, 100};
-            DrawRectangleLines(r1.x, r1.y, r1.width, r1.height, RED);
-            DrawRectangleLines(r2.x, r2.y, r2.width, r2.height, BLUE);
-            DrawRectangleLines(rr0.x, rr0.y, rr0.width, rr0.height, GREEN);
-            DrawRectangleLines(rr1.x, rr1.y, rr1.width, rr1.height, YELLOW);
-            DrawRectangleLines(rr2.x, rr2.y, rr2.width, rr2.height, MAGENTA);
+        Rectangle r1 = {100, 100, 400, 400};
+        Rectangle r2 = {90, 95, 400, 400};
+        Rectangle rr0 = {100, 100, 200, 200};
+        Rectangle rr1 = {190, 90, 200, 100};
+        Rectangle rr2 = {340, 90, 200, 100};
+        DrawRectangleLines(r1.x, r1.y, r1.width, r1.height, RED);
+        DrawRectangleLines(r2.x, r2.y, r2.width, r2.height, BLUE);
+        DrawRectangleLines(rr0.x, rr0.y, rr0.width, rr0.height, GREEN);
+        DrawRectangleLines(rr1.x, rr1.y, rr1.width, rr1.height, YELLOW);
+        DrawRectangleLines(rr2.x, rr2.y, rr2.width, rr2.height, MAGENTA);
 
+        clip_begin(r1);
+        clip_begin(r2);
 
-            clip_begin(r1.x, r1.y, r1.width, r1.height);
-            clip_begin(r2.x, r2.y, r2.width, r2.height);
+        clip_begin(rr0);
+        DrawCircle(rr0.x, rr0.y, 128, GREEN);
+        clip_end();
 
-            clip_begin(rr0.x, rr0.y, rr0.width, rr0.height);
-            DrawCircle(rr0.x, rr0.y, 128, GREEN);
-            clip_end();
+        clip_begin(rr1);
+        Color c = YELLOW;
+        c.a = 0xab;
+        DrawCircle(rr1.x, rr1.y, 150, c);
+        clip_end();
 
-            clip_begin(rr1.x, rr1.y, rr1.width, rr1.height);
-            Color c= YELLOW;
-            c.a=0xab;
-            DrawCircle(rr1.x, rr1.y, 150, c);
-            clip_end();
+        clip_begin(rr2);
+        c = MAGENTA;
+        c.a = 0xab;
+        DrawCircle(rr2.x, rr2.y, 150, c);
+        clip_end();
 
-            clip_begin(rr2.x, rr2.y, rr2.width, rr2.height);
-            c= MAGENTA;
-            c.a=0xab;
-            DrawCircle(rr2.x, rr2.y, 150, c);
-            clip_end();
+        clip_end();
+        clip_end();
 
-
-            clip_end();
-            clip_end();
-        */
-        
-
-        handle_tag_selection(task_creator_ret.tag_sel_x, task_creator_ret.tag_sel_y);
+        // handle_tag_selection(task_creator_ret.tag_sel_x, task_creator_ret.tag_sel_y);
         end_frame();
     }
 

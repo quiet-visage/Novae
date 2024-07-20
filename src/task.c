@@ -159,7 +159,7 @@ Task_Return task_draw(Task* m, float x, float y, float max_width, Rectangle boun
     Task_Return result = {0};
     Rectangle bg = {.x = x, .y = y, .width = max_width, .height = task_height()};
 
-    clip_begin_rounded(bg.x, bg.y, bg.width, bg.height, RADIUS_TO_ROUNDNESS(g_cfg.bg_radius, bg.height));
+    clip_begin_rounded(bg, g_cfg.bg_radius);
     DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
     rlDrawRenderBatchActive();
 
@@ -219,11 +219,12 @@ Task_Return task_draw(Task* m, float x, float y, float max_width, Rectangle boun
 
     int swipe = swipe_btn_view(&m->swipe, bar_rec.x + bar_rec.width * .5, tag_y + tag_height() * .5, ICON_VISIBILY_OFF,
                                ICON_CHECK, "Toggle visibility", "Mark as done");
+    clip_end();
+
     if (swipe < 0)
         result = TASK_DELETE;
     else if (swipe > 0)
         result = TASK_MARK_DONE;
-    clip_end();
 
     return result;
 }

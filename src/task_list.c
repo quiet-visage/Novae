@@ -205,7 +205,7 @@ Task_List_Return task_list_view(Task_List* m, float x, float y, float max_w, flo
         }
     }
 
-    BeginScissorMode(x, y, max_w, max_h);
+    // BeginScissorMode(x, y, max_w, max_h);
     for (size_t i = 0; i < m->tasks.len; i += 1) {
         float task_y = m->tasks.data[i].mo.position[0] + m->scroll_mo.position[0];
         if (((task_y + task_h) < y) || ((task_y - y) >= max_h)) continue;
@@ -246,7 +246,7 @@ Task_List_Return task_list_view(Task_List* m, float x, float y, float max_w, flo
             } break;
         }
     }
-    EndScissorMode();
+    // EndScissorMode();
 
     Color grad_col1 = GET_RCOLOR(COLOR_CRUST);
     Color grad_col0 = grad_col1;

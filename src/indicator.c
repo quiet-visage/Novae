@@ -46,10 +46,10 @@ void indicator_calculate_pivoted(Indicator* m, float x, float y, float pivot_x, 
 }
 
 void indicator_draw_faded(Indicator* m, Color base) {
-    clip_begin_custom_shape();
-    DrawLineEx(m->diag_begin, m->diag_end, 1.0f, WHITE);
-    DrawLineEx(m->line_begin, m->line_end, 1.0f, WHITE);
-    clip_end_custom_shape();
+    // clip_begin_custom_shape();
+    // DrawLineEx(m->diag_begin, m->diag_end, 1.0f, WHITE);
+    // DrawLineEx(m->line_begin, m->line_end, 1.0f, WHITE);
+    // clip_end_custom_shape();
     float grad_y = MIN(m->diag_begin.y, m->diag_end.y);
     float grad_x = MIN(m->diag_begin.x, m->line_end.x);
     float rec_width = MAX(m->diag_begin.x, m->line_end.x) - MIN(m->diag_begin.x, m->line_end.x);

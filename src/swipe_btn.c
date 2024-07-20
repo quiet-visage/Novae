@@ -21,7 +21,8 @@ Swipe_Btn swipe_btn_create(void) {
 }
 
 static inline void draw_half_gradient(float bx, float by, float x, float y, float radius, Color color) {
-    clip_begin(bx, by, EXPANDED_RADIUS, EXPANDED_RADIUS * 2);
+    Rectangle rec = {bx, by, EXPANDED_RADIUS, EXPANDED_RADIUS * 2};
+    clip_begin(rec);
     DrawCircleGradient(x, y, radius, color, BLANK);
     clip_end();
 }
