@@ -7,9 +7,7 @@ NOTE: may be a great idea to implement a complete calendar o the right side
 TODO: on slide button choide fade in the text
     : hover tooltip
     : use gpu to draw the hue stuff
-FIX: to fix clip keep a stack of rects,
-        check if layer was used
-        if was used reset, with new rec
+
 */
 
 #include <assert.h>
