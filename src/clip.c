@@ -122,5 +122,3 @@ void clip_end_frame(void) {
     assert(g_layer == 0 && "unmatched clip_begin and clip_end");
     memset(g_layer_was_previously_used, 0, sizeof(g_layer_was_previously_used));
 }
-
-void clip_print_layer(void) { printf("%d\n", g_layer); }
