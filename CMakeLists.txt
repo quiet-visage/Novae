@@ -38,7 +38,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Sanitize")
   target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
 endif()
 
-
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 23)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall )
 

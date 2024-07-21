@@ -39,11 +39,11 @@ static void draw_text(float x, float y, const char* text, int alpha) {
 }
 
 int swipe_btn_view(Swipe_Btn* m, float x, float y, Icon icon_left, Icon icon_right, const char* text_left,
-                   const char* text_right) {
+                   const char* text_right, bool enabled) {
     int result = 0;
     Vector2 mp = GetMousePosition();
     bool clicked =
-        IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointCircle(mp, (Vector2){x, y}, BUTTON_RADIUS);
+        enabled && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointCircle(mp, (Vector2){x, y}, BUTTON_RADIUS);
     m->expand = m->expand || clicked;
     float motion_target[] = {INITIAL_RADIUS, INITIAL_RADIUS};
     if (m->expand && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -73,7 +73,7 @@ int swipe_btn_view(Swipe_Btn* m, float x, float y, Icon icon_left, Icon icon_rig
         Rectangle dest = {x - BUTTON_RADIUS * 5 - BTN_ICON_SIZE * .5, y - BTN_ICON_SIZE * .5, BTN_ICON_SIZE,
                           BTN_ICON_SIZE};
         Vector2 orig = {0};
-        DrawCircle(dest.x, dest.y + BTN_ICON_SIZE * .5, BUTTON_RADIUS, GET_RCOLOR(COLOR_SURFACE0));
+        DrawCircle(dest.x + BTN_ICON_SIZE * .5, dest.y + BTN_ICON_SIZE * .5, BUTTON_RADIUS, GET_RCOLOR(COLOR_SURFACE0));
         DrawCircleLines(dest.x + BTN_ICON_SIZE * .5, dest.y + BTN_ICON_SIZE * .5, BUTTON_RADIUS, icon_color);
         DrawTexturePro(left_tex, src, dest, orig, 0, icon_color);
 
@@ -96,7 +96,7 @@ int swipe_btn_view(Swipe_Btn* m, float x, float y, Icon icon_left, Icon icon_rig
             draw_text(text_x, text_y, text_right, 0xff * m->text_motion.position[1]);
         }
 
-        DrawCircle(dest.x, dest.y + BTN_ICON_SIZE * .5, BUTTON_RADIUS, GET_RCOLOR(COLOR_SURFACE0));
+        DrawCircle(dest.x + BTN_ICON_SIZE * .5, dest.y + BTN_ICON_SIZE * .5, BUTTON_RADIUS, GET_RCOLOR(COLOR_SURFACE0));
         DrawCircleLines(dest.x + BTN_ICON_SIZE * .5, dest.y + BTN_ICON_SIZE * .5, BUTTON_RADIUS, icon_color);
         DrawTexturePro(right_tex, src, dest, orig, 0, icon_color);
     } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && m->expand) {

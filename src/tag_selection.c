@@ -15,6 +15,7 @@
 #include "db_cache.h"
 #include "editor.h"
 #include "fieldfusion.h"
+#include "hint.h"
 #include "hsv.h"
 #include "icon.h"
 #include "motion.h"
@@ -214,8 +215,9 @@ void tag_selection_destroy(Tag_Selection* m) {
     btn_destroy(&m->search_btn);
 }
 
-static void compact_view(Tag_Selection* m, float x, float y) {
+static void compact_view(Tag_Selection* m, float x, float y, bool enabled) {
     Rectangle tag_bg = tag_draw(m->tag, x, y, 0);
+    if (enabled && m->state==TAG_SELECTION_STATE_COMPACT) hint_view("open tag selection menu", tag_bg);
     bool clicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), tag_bg);
     clicked *= m->state == TAG_SELECTION_STATE_COMPACT;
     if (!clicked) return;
@@ -406,9 +408,9 @@ static Tag* open_view(Tag_Selection* m, bool enabled) {
     return result;
 }
 
-Tag* tag_selection_view(Tag_Selection* m, float x, float y, bool enabled) {
-    compact_view(m, x, y);
-    return open_view(m, enabled);
+Tag* tag_selection_view(Tag_Selection* m, float x, float y, bool enable_hint, bool enable_menu_input) {
+    compact_view(m, x, y, enable_hint);
+    return open_view(m, enable_menu_input);
 }
 
 Tag* tag_selection_get_selected(Tag_Selection* m) { return m->tag; }

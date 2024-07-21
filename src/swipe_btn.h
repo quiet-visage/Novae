@@ -10,5 +10,5 @@ typedef struct {
 
 Swipe_Btn swipe_btn_create(void);
 int swipe_btn_view(Swipe_Btn* m, float x, float y, Icon icon_left, Icon icon_right, const char* text_left,
-                   const char* text_right);
+                   const char* text_right, bool enabled);
 // void swipe_btn_destroy(void);

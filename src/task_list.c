@@ -4,12 +4,13 @@
 #include <raylib.h>
 #include <rlgl.h>
 
-#include "alpha_inherit.h"
 #include "button.h"
+#include "clip.h"
 #include "colors.h"
 #include "config.h"
 #include "draw_opts.h"
 #include "fieldfusion.h"
+#include "hint.h"
 #include "icon.h"
 #include "motion.h"
 #include "raymath.h"
@@ -67,7 +68,11 @@ inline void task_list_push(Task_List* m, Task t) {
     Task_List_Item item = {0};
     item.task = t;
     item.mo = motion_new();
-    item.display_index = m->tasks.len;
+
+    for (size_t i = 0; i < m->tasks.len; ++i) {
+        if (m->tasks.data[i].display_index >= 0) m->tasks.data[i].display_index += 1;
+    }
+
     task_vec_push(&m->tasks, item);
 }
 
@@ -186,7 +191,10 @@ Task_List_Return task_list_view(Task_List* m, float x, float y, float max_w, flo
         size_t ht_str_len = snprintf(ht_str, hidden_task_str_cap, "%ld task(s) hidden", get_hidden_tasks_count(m));
         ff_draw_str8(ht_str, ht_str_len, x, y, (float*)g_cfg.global_projection, g_cfg.estyle);
 
-        int icon = m->flags & TASK_LIST_FLAG_SHOW_HIDDEN ? ICON_VISIBILY_ON : ICON_VISIBILY_OFF;
+        bool showing_hidden = m->flags & TASK_LIST_FLAG_SHOW_HIDDEN;
+        int icon = showing_hidden ? ICON_VISIBILY_ON : ICON_VISIBILY_OFF;
+        Rectangle bounds = {x + max_w - BTN_ICON_SIZE * 2, y - BTN_ICON_SIZE * .5, BTN_ICON_SIZE*2, BTN_ICON_SIZE*2};
+        hint_view(showing_hidden ? "toggle show hidden off" : "toggle show hidden on", bounds);
         bool clicked =
             btn_draw_with_icon(&m->show_hidden_btn, icon, x + max_w - BTN_ICON_SIZE * 2, y - BTN_ICON_SIZE * .5);
         if (clicked) m->flags ^= TASK_LIST_FLAG_SHOW_HIDDEN;
@@ -205,21 +213,21 @@ Task_List_Return task_list_view(Task_List* m, float x, float y, float max_w, flo
         }
     }
 
-    // BeginScissorMode(x, y, max_w, max_h);
+    clip_begin((Rectangle){x, y, max_w, max_h});
     for (size_t i = 0; i < m->tasks.len; i += 1) {
         float task_y = m->tasks.data[i].mo.position[0] + m->scroll_mo.position[0];
         if (((task_y + task_h) < y) || ((task_y - y) >= max_h)) continue;
         Task* task = &m->tasks.data[i].task;
 
         if (m->tasks.data[i].hidden && !(m->flags & TASK_LIST_FLAG_SHOW_HIDDEN)) continue;
-        Task_Return ret = task_draw(task, x, task_y, max_w, bounds, !m->tasks.data[i].hidden);
+        Task_Return ret = task_draw(task, x, task_y, max_w, bounds, !m->tasks.data[i].hidden && (opts & DRAW_ENABLE_MOUSE_INPUT));
         if (m->tasks.data[i].hidden) {
             float icon_x = x + max_w * .5;
             float icon_y = task_y + task_height() * .5;
             Texture tex = icon_get(ICON_VISIBILY_OFF);
             Rectangle src = {0, 0, tex.width, tex.height};
             float icon_size = BTN_ICON_SIZE * 2.;
-            Rectangle dst = {icon_x, icon_y - icon_size * .5, icon_size, icon_size};
+            Rectangle dst = {icon_x - icon_size * .5, icon_y - icon_size * .5, icon_size, icon_size};
             DrawTexturePro(tex, src, dst, (Vector2){0}, 0, WHITE);
         }
 
@@ -246,7 +254,7 @@ Task_List_Return task_list_view(Task_List* m, float x, float y, float max_w, flo
             } break;
         }
     }
-    // EndScissorMode();
+    clip_end();
 
     Color grad_col1 = GET_RCOLOR(COLOR_CRUST);
     Color grad_col0 = grad_col1;

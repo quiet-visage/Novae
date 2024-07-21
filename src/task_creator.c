@@ -62,20 +62,20 @@ static void handle_digit_edit(Task_Creator* m, Rectangle left_ed_bg, bool enable
     m->digit_ed.width = left_ed_bg.width;
     left_ed_bg.width = MAX(left_ed_bg.width, g_style->typo.size);
     float t_width = MAX(left_ed_bg.width, editor_get_text_width(&m->digit_ed, &m->digit_buf));
-    // clip_begin(left_ed_bg.x, left_ed_bg.y, left_ed_bg.width, left_ed_bg.height);
+    clip_begin(left_ed_bg);
     left_ed_bg.x = CENTER(left_ed_bg.x, left_ed_bg.width, t_width);
     left_ed_bg.x -= g_cfg.inner_gap;
     editor_view(&m->digit_ed, &m->digit_buf, left_ed_bg.x, left_ed_bg.y, enabled);
-    // clip_end();
+    clip_end();
 }
 
 static void handle_name_edit(Task_Creator* m, Rectangle name_bg, bool enabled) {
     m->name_ed.width = name_bg.width;
     editor_set_flag(&m->name_ed, EDITOR_CENTER_INPUT);
-    // clip_begin(name_bg.x, name_bg.y, name_bg.width, name_bg.height);
+    clip_begin(name_bg);
     name_bg.x = CENTER(name_bg.x, name_bg.width, editor_get_text_width(&m->name_ed, &m->name_buf));
     editor_view(&m->name_ed, &m->name_buf, name_bg.x, name_bg.y, enabled);
-    // clip_end();
+    clip_end();
 }
 
 static U8 get_left(Task_Creator* m) {
@@ -145,18 +145,17 @@ Task_Creator_Ret task_creator_draw(Task_Creator* m, Task* out, float x, float y,
     bg.y = y;
     bg.width = max_width;
     bg.height = task_creator_height();
-    // clip_begin_rounded(bg.x, bg.y, bg.width, bg.height, RADIUS_TO_ROUNDNESS(g_cfg.bg_radius, bg.height));
+    clip_begin_rounded(bg, g_cfg.bg_radius);
     DrawRectangleRec(bg, GET_RCOLOR(COLOR_BASE));
     rlDrawRenderBatchActive();
     bool clicked_add = draw_add_btn(&m->add_btn_mo, bg, bg);
-    // clip_end();
+    clip_end();
 
     Rectangle name_rec;
     name_rec.width = bg.width * .55f;
     name_rec.x = CENTER(bg.x, bg.width, name_rec.width);
     name_rec.height = g_style->typo.size * 1.5f;
     name_rec.y = bg.y + g_cfg.outer_gap;
-    // DRAW_BG(name_rec, 100.f, COLOR_SURFACE0);
 
     Rectangle bar_rec = {0};
     bar_rec.width = bg.width * .6f;

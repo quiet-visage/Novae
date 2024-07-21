@@ -11,10 +11,14 @@
 
 typedef enum { CLIP_SHAPE_RECTANGLE, CLIP_SHAPE_RECTANGLE_ROUNDED } Clip_Shape;
 
+typedef union {
+    size_t radius;
+} Clip_Parameter;
+
 typedef struct {
     Clip_Shape shape;
     Rectangle bounds;
-    size_t radius;  // should be union if more paremeters are needed
+    Clip_Parameter parameter;
 } Clip_Call;
 
 short g_layer = 0;
@@ -54,7 +58,7 @@ void clip_begin_call(Clip_Call call) {
     switch (call.shape) {
         case CLIP_SHAPE_RECTANGLE: DrawRectangleRec(call.bounds, WHITE); break;
         case CLIP_SHAPE_RECTANGLE_ROUNDED:
-            DrawRectangleRounded(call.bounds, RADIUS_TO_ROUNDNESS(call.radius, call.bounds.height),
+            DrawRectangleRounded(call.bounds, RADIUS_TO_ROUNDNESS(call.parameter.radius, call.bounds.height),
                                  g_cfg.rounded_rec_segments, WHITE);
             break;
     }
@@ -73,6 +77,15 @@ void clip_recall() {
     }
 }
 
+void clip_begin_custom_shape(void) {
+    assert(g_layer == 0);
+
+    g_callstack_len++;  // first layer doens't really need to be store, so just skip.
+    clip_begin_primitive();
+}
+
+void clip_end_custom_shape(void) { clip_end_primitive(); }
+
 void clip_begin(Rectangle bounds) {
     Clip_Call call = {0};
     call.bounds = bounds;
@@ -90,7 +103,7 @@ void clip_begin_rounded(Rectangle bounds, float radius) {
     Clip_Call call = {0};
     call.bounds = bounds;
     call.shape = CLIP_SHAPE_RECTANGLE_ROUNDED;
-    call.radius = radius;
+    call.parameter.radius = radius;
 
     g_callstack[g_callstack_len++] = call;
     if (g_layer != 1 && g_layer_was_previously_used[g_layer + 1]) {

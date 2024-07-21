@@ -189,9 +189,7 @@ Task_Return task_draw(Task* m, float x, float y, float max_width, Rectangle boun
     float tag_y = bar_rec.y + bar_rec.height + g_cfg.inner_gap;
     Tag* tag = db_cache_get_tag(m->tag_id);
     if (!tag) tag = db_cache_get_default_tag();
-    // clip_begin_rounded(bg.x,bg.y,bg.width,bg.height, 0x400);
     tag_draw(tag, tag_x, tag_y, bar_rec.width * .25);
-    // clip_end();
 
     if (m->left) {
         C32 str[64] = {0};
@@ -218,7 +216,7 @@ Task_Return task_draw(Task* m, float x, float y, float max_width, Rectangle boun
         result = TASK_MOVE_UP;
 
     int swipe = swipe_btn_view(&m->swipe, bar_rec.x + bar_rec.width * .5, tag_y + tag_height() * .5, ICON_VISIBILY_OFF,
-                               ICON_CHECK, "Toggle visibility", "Mark as done");
+                               ICON_CHECK, "Toggle visibility", "Mark as done", enabled);
     clip_end();
 
     if (swipe < 0)

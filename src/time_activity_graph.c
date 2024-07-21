@@ -91,20 +91,20 @@ static void draw_x_axis(float x, float y, float graph_width, Time_Activity* acti
 
 static void draw_graph_gradient(size_t points_count, Vector2* points, float x, float y, float graph_width,
                                 float graph_height) {
-    // clip_begin_custom_shape();
-    // for (size_t i = points_count; i-- > 0;) {
-    //     if (i) {
-    //         Vector2 pa = points[i - 1];
-    //         Vector2 pb = points[i];
-    //         rlBegin(RL_QUADS);
-    //         rlVertex2f(pa.x, pa.y);
-    //         rlVertex2f(pa.x, y + graph_height);
-    //         rlVertex2f(pb.x, y + graph_height);
-    //         rlVertex2f(pb.x, pb.y);
-    //         rlEnd();
-    //     }
-    // }
-    // clip_end_custom_shape();
+    clip_begin_custom_shape();
+    for (size_t i = points_count; i-- > 0;) {
+        if (i) {
+            Vector2 pa = points[i - 1];
+            Vector2 pb = points[i];
+            rlBegin(RL_QUADS);
+            rlVertex2f(pa.x, pa.y);
+            rlVertex2f(pa.x, y + graph_height);
+            rlVertex2f(pb.x, y + graph_height);
+            rlVertex2f(pb.x, pb.y);
+            rlEnd();
+        }
+    }
+    clip_end_custom_shape();
     DrawRectangleGradientV(x, y, graph_width, graph_height * 0.5f, GET_RCOLOR(COLOR_TEAL), BLANK);
     clip_end();
 }
