@@ -1,3 +1,4 @@
+// TODO: Make a hash map for the instances, should be more performant
 #include "hint.h"
 
 #include <assert.h>
@@ -23,10 +24,9 @@ typedef struct {
 
 #define HINT_INSTANCES_CAP 128
 
-Hint_Instance g_instances[HINT_INSTANCES_CAP];
-size_t g_instances_len;
-
-FF_Style* g_style = &g_cfg.sstyle;
+static Hint_Instance g_instances[HINT_INSTANCES_CAP];
+static size_t g_instances_len;
+static FF_Style* g_style = &g_cfg.sstyle;
 
 void hint_init(void) { memset(g_instances, 0, sizeof(g_instances)); }
 

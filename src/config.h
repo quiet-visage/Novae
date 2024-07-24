@@ -25,6 +25,7 @@
     } while (0)
 
 #define BTN_ICON_SIZE (g_cfg.sstyle.typo.size)
+#define BTN_ICON_RADIUS (BTN_ICON_SIZE * 1.75)
 #define MOUSE_WHEEL_Y_SCROLL_SCALE 8
 
 typedef struct {

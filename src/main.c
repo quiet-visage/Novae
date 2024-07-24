@@ -1,10 +1,11 @@
 /*
-TODO: hint on top of the item being hinted
-    : fix task list order
+TODO: center items on the left to the center of the screen vertically
+TODO: if clicked on a hidden task, unhide it
 NOTE: may be a great idea to implement a complete calendar o the right side
       with a scroll bar
     : statistics tab would be great on the left side
     : window titles?
+    : minimal mode when in focus
 TODO: on slide button choide fade in the text
     : hover tooltip
     : use gpu to draw the hue stuff
@@ -26,8 +27,10 @@ TODO: on slide button choide fade in the text
 #include "fieldfusion.h"
 #include "heatmap.h"
 #include "hint.h"
+#include "hsv.h"
 #include "icon.h"
 #include "pchart.h"
+#include "ptimer.h"
 #include "sdf_draw.h"
 #include "shader.h"
 #include "streak.h"
@@ -36,7 +39,6 @@ TODO: on slide button choide fade in the text
 #include "task_creator.h"
 #include "task_list.h"
 #include "time_activity_graph.h"
-#include "timing_component.h"
 
 // clang-format off
 #define EMBED_FILE(var_name, file_name)                              \
@@ -56,7 +58,7 @@ typedef enum {
 extern const unsigned char g_nova_mono_bytes[];
 extern const int g_nova_mono_bytes_len;
 size_t g_nova_mono_font = {0};
-Timing_Component g_timing_comp = {0};
+PTimer g_timing_comp = {0};
 Task_Creator g_task_creator = {0};
 Task_List g_task_list = {0};
 Task g_new_task = {0};
@@ -108,7 +110,7 @@ void main_init() {
     g_new_task = task_create();
 
     size_t todays_task_count = db_get_todays_task_count();
-    timing_component_create(&g_timing_comp);
+    ptimer_create(&g_timing_comp);
     if (todays_task_count) {
         Task *tasks = calloc(todays_task_count, sizeof(Task));
         db_get_todays_task(tasks);
@@ -139,7 +141,7 @@ void main_terminate() {
     task_destroy(&g_new_task);
     task_destroy(&g_default_task);
     task_creator_destroy(&g_task_creator);
-    timing_component_destroy(&g_timing_comp);
+    ptimer_destroy(&g_timing_comp);
     blur_terminate();
     CloseAudioDevice();
     CloseWindow();
@@ -172,11 +174,11 @@ static void add_task() {
     g_new_task = task_create();
 }
 
-static void synchronize_task_time_spent(Task *priority_task, TC_Return timing_comp_ret) {
+static void synchronize_task_time_spent(Task *priority_task, PTimer_Return timing_comp_ret) {
     if (!timing_comp_ret.spent_delta) db_batch_incr_time(priority_task->db_id, GetFrameTime(), INCR_TIME_SPENT_IDLE);
-    if (g_timing_comp.pomo == TC_POMO_STATE_FOCUS)
+    if (g_timing_comp.pomo == PTIMER_PSTATE_FOCUS)
         db_batch_incr_time(priority_task->db_id, timing_comp_ret.spent_delta, INCR_TIME_SPENT_FOCUS);
-    if (g_timing_comp.pomo == TC_POMO_STATE_REST)
+    if (g_timing_comp.pomo == PTIMER_PSTATE_REST)
         db_batch_incr_time(priority_task->db_id, timing_comp_ret.spent_delta, INCR_TIME_SPENT_REST);
 }
 
@@ -196,12 +198,13 @@ void main_loop() {
         begin_frame();
 
         float timing_comp_width = .25f * GetScreenWidth();
-        float timing_comp_x = CENTER(0, GetScreenWidth(), timing_comp_width);
-        TC_Return timing_comp_ret =
-            timing_component_draw(&g_timing_comp, timing_comp_x, g_cfg.inner_gap, timing_comp_width);
+        float timing_comp_x = GetScreenWidth() * .5;
+        float tcy = ptimer_radius(&g_timing_comp) + g_cfg.inner_gap + 10.;
+        PTimer_Return timing_comp_ret = ptimer_draw(&g_timing_comp, timing_comp_x, tcy, timing_comp_width);
 
-        float offset_y = g_cfg.outer_gap + timing_component_height(&g_timing_comp) + g_cfg.inner_gap;
-        Task_Creator_Ret task_creator_ret = task_creator_draw(&g_task_creator, &g_new_task, timing_comp_x, offset_y,
+        float offset_y = g_cfg.outer_gap + tcy * 2;
+        float task_creator_x = CENTER(0, GetScreenWidth(), timing_comp_width);
+        Task_Creator_Ret task_creator_ret = task_creator_draw(&g_task_creator, &g_new_task, task_creator_x, offset_y,
                                                               timing_comp_width, g_focus & FOCUS_FLAG_TASK_CREATOR);
         if (task_creator_ret.create) add_task();
 
@@ -210,7 +213,7 @@ void main_loop() {
 
         float task_list_max_height = g_cfg.window_height - offset_y;
         Task_List_Return task_list_return =
-            task_list_view(&g_task_list, timing_comp_x, offset_y, timing_comp_width, task_list_max_height,
+            task_list_view(&g_task_list, task_creator_x, offset_y, timing_comp_width, task_list_max_height,
                            (g_focus & FOCUS_FLAG_TASK_CREATOR ? 0b111 : 0));
         if (task_list_return.related_task_event) {
             assert(task_list_return.related_task);
@@ -228,39 +231,40 @@ void main_loop() {
             task = task_list_get_prioritized(&g_task_list);
         else
             task = &g_default_task;
-
-        assert(task);
         synchronize_task_time_spent(task, timing_comp_ret);
-        if (timing_comp_ret.finished == TC_FIN_FOCUS) {
+        if (timing_comp_ret.finished == PTIMER_FIN_FOCUS) {
             db_incr_done(task->db_id);
             task->done += 1;
             if (task->done == task->left) db_set_completed(task->db_id);
         }
 
-        float date_time_x = timing_comp_x + timing_comp_width + g_cfg.inner_gap;
+        float date_time_w = date_time_width();
+        float date_time_x = GetScreenWidth()-g_cfg.inner_gap-date_time_w;
         float date_time_y = g_cfg.inner_gap;
-        date_time_view(date_time_x, g_cfg.inner_gap, g_timing_comp.chrono.secs_left);
+        // DrawRectangleLines(date_time_x,date_time_y,date_time_w,100,WHITE);
+        date_time_view_all(date_time_x, date_time_y, g_timing_comp.chrono.secs_left);
 
-        float pchart_w = pchart_max_width();
-        float pchart_x = timing_comp_x - pchart_w - g_cfg.inner_gap;
-        float pchart_y = g_cfg.inner_gap;
-        pchart_draw(pchart_x, g_cfg.inner_gap);
+        {
+            float w = pchart_max_width();
+            float x = g_cfg.inner_gap;
+            float y = g_cfg.inner_gap;
+            pchart_draw(x, y);
 
-        float streak_x = pchart_x + pchart_w * .5f;
-        float streak_y = g_cfg.inner_gap + pchart_max_height() * .5f;
-        streak_draw(streak_x, streak_y);
+            float streak_x = x + w * .5f;
+            float streak_y = g_cfg.inner_gap + pchart_max_height() * .5f;
+            streak_draw(streak_x, streak_y);
 
-        float time_activity_x = timing_comp_x - time_activity_graph_max_width() - g_cfg.inner_gap;
-        float time_activity_y = pchart_max_height() + pchart_y + g_cfg.inner_gap;
-        time_activity_graph_draw(time_activity_x, time_activity_y);
-
-        float heatmap_x = date_time_x;
-        heatmap_draw(heatmap_x, date_time_y + date_time_max_height() + g_cfg.inner_gap);
-
-        if (IsKeyPressed(KEY_F5)) {
-            shader_reload();
+            float time_activity_x = g_cfg.inner_gap;
+            float time_activity_y = pchart_max_height() + y + g_cfg.inner_gap;
+            time_activity_graph_draw(time_activity_x, time_activity_y);
         }
-        handle_tag_selection(task_creator_ret.tag_sel_x, task_creator_ret.tag_sel_y);
+        // float heatmap_x = date_time_x;
+        // heatmap_draw(heatmap_x, date_time_y + date_time_max_height() + g_cfg.inner_gap);
+
+        // if (IsKeyPressed(KEY_F5)) {
+        //     shader_reload();
+        // }
+        // // handle_tag_selection(task_creator_ret.tag_sel_x, task_creator_ret.tag_sel_y);
 
         /*
                 Rectangle r1 = {100, 100, 400, 400};

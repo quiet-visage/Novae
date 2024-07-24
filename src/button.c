@@ -84,6 +84,38 @@ bool btn_draw(Btn *m, float x, float y) {
     return result;
 }
 
+bool btn_draw_icon(Btn *m, Icon icon, float cx, float cy) {
+    static const float border = 3.;
+
+    float bg_radius = BTN_ICON_SIZE * 1.75;
+    bool result = 0;
+
+    Vector2 mouse = GetMousePosition();
+    Vector2 center = {cx, cy};
+    bool hovering = CheckCollisionPointCircle(mouse, center, bg_radius);
+
+    float anim_target[2] = {0};
+    if (hovering) {
+        anim_target[0] = border;
+        result = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    }
+    motion_update(&m->motion, anim_target, GetFrameTime());
+
+    DrawCircle(cx, cy, bg_radius + m->motion.position[0], GET_RCOLOR(COLOR_TEAL));
+    DrawCircle(cx, cy, bg_radius + border - m->motion.position[0], GET_RCOLOR(COLOR_SURFACE0));
+    DrawCircle(cx, cy, bg_radius, GET_RCOLOR(COLOR_BASE));
+
+    Vector2 icon_origin = {0};
+    Texture icon_tex = icon_get(icon);
+    Rectangle icon_src = {0, 0, icon_tex.width, icon_tex.width};
+    Rectangle icon_dst = {cx - BTN_ICON_SIZE * .5, cy - BTN_ICON_SIZE * .5, BTN_ICON_SIZE + 4.f, BTN_ICON_SIZE + 4.f};
+    Color icon_col = GET_RCOLOR(COLOR_SKY);
+    icon_col.a = alpha_inherit_get_alpha();
+    DrawTexturePro(icon_tex, icon_src, icon_dst, icon_origin, 0, icon_col);
+
+    return result;
+}
+
 bool btn_draw_with_icon(Btn *m, Icon icon, float x, float y) {
     Rectangle bg = {
         .x = x,

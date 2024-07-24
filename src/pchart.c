@@ -134,7 +134,8 @@ void pchart_draw(float x, float y) {
 
     float max_w = pchart_max_width();
     Rectangle bg = {.x = x, .y = y, .width = max_w, .height = pchart_max_height()};
-    DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
+    // DrawRectangleLinesEx(bg, 1., WHITE);
+    // DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
 
     Color color[SEGMENT_COUNT];
     color[SEGMENT_FOCUS] = GET_RCOLOR(COLOR_BLUE);

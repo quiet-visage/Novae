@@ -152,7 +152,8 @@ inline float time_activity_graph_max_height(void) { return GRAPH_HEIGHT + g_cfg.
 void time_activity_graph_draw(float x, float y) {
     Rectangle bg = {
         .x = x, .y = y, .width = time_activity_graph_max_width(), .height = time_activity_graph_max_height()};
-    DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
+    // DrawRectangleLinesEx(bg, 1., WHITE);
+    // DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
     x += g_cfg.outer_gap;
     y += g_cfg.outer_gap;
 

@@ -9,9 +9,9 @@ Config g_cfg = {0};
 
 void config_init(void) {
     g_cfg.clock_focus_mins = 00;
-    g_cfg.clock_focus_secs = 1;
+    g_cfg.clock_focus_secs = 10;
     g_cfg.clock_rest_mins = 0;
-    g_cfg.clock_rest_secs = 2;
+    g_cfg.clock_rest_secs = 5;
 
     g_cfg.window_width = 1280;
     g_cfg.window_height = 720;

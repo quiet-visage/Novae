@@ -29,6 +29,16 @@
 static FF_Style* g_style = &g_cfg.sstyle;
 static HSV g_tag_hsv = {285., 1., 1.};
 
+static float smooth_wheel(float deg, float radius, float ring_width, float cx, float cy, float x, float y,
+                          float alpha) {
+    float mradius = radius - ring_width * .5;
+    Vector2 pos = {mradius * cosf((deg - 180) * DEG2RAD) + cx, mradius * sinf(-(deg * DEG2RAD)) + cy};
+    float dist = Vector2Distance(pos, (Vector2){x + cx, y + cy});
+    float ease_t = dist / (ring_width * .5);
+    float alpha_factor = 1 - ease_t * ease_t * ease_t;
+    return alpha * alpha_factor;
+}
+
 static void draw_hue_wheel(HSV hsv, float cx, float cy, float radius, float ring_width) {
     for (float x = -radius; x < radius; x += 1) {
         for (float y = -radius; y < radius; y += 1) {
@@ -39,6 +49,7 @@ static void draw_hue_wheel(HSV hsv, float cx, float cy, float radius, float ring
             HSV hsv = {deg, r / radius, 1.f};
             Color col = hsv2rgb(hsv);
             col.a = alpha_inherit_get_alpha();
+            col.a = smooth_wheel(deg, radius, ring_width, cx, cy, x, y, col.a);
             DrawPixel(x + cx, y + cy, col);
         }
     }
@@ -50,10 +61,11 @@ static void draw_saturation_wheel(float hue, float value, float cx, float cy, fl
             float r = sqrt(x * x + y * y);
             if (r > radius || r < radius - ring_width) continue;
             float phi = atan2(y, x);
-            float deg = hue;
-            HSV hsv = {deg, ((RAD2DEG * phi + 180) / 360), value};
+            float deg = RAD2DEG * phi + 180.;
+            HSV hsv = {hue, deg / 360, value};
             Color col = hsv2rgb(hsv);
             col.a = alpha_inherit_get_alpha();
+            col.a = smooth_wheel(deg, radius, ring_width, cx, cy, x, y, col.a);
             DrawPixel(x + cx, y + cy, col);
         }
     }
@@ -65,10 +77,11 @@ static void draw_value_wheel(float hue, float sat, float cx, float cy, float rad
             float r = sqrt(x * x + y * y);
             if (r > radius || r < radius - ring_width) continue;
             float phi = atan2(y, x);
-            float deg = hue;
-            HSV hsv = {deg, sat, (RAD2DEG * phi + 180) / 360};
+            float deg = RAD2DEG * phi + 180.;
+            HSV hsv = {hue, sat, (RAD2DEG * phi + 180) / 360};
             Color col = hsv2rgb(hsv);
             col.a = alpha_inherit_get_alpha();
+            col.a = smooth_wheel(deg, radius, ring_width, cx, cy, x, y, col.a);
             DrawPixel(x + cx, y + cy, col);
         }
     }
@@ -197,7 +210,6 @@ Tag_Selection tag_selection_create(void) {
     result.mo = motion_new();
     result.target_alpha = 0x0;
     result.search = search_input_create();
-    // begin_open_view_fade_in(&result);
     result.state = TAG_SELECTION_STATE_COMPACT;
     result.hue_wheel.radius = HUE_RAD;
     result.saturation_wheel.radius = HUE_RAD - HUE_RING_W - 5.f;
@@ -217,7 +229,7 @@ void tag_selection_destroy(Tag_Selection* m) {
 
 static void compact_view(Tag_Selection* m, float x, float y, bool enabled) {
     Rectangle tag_bg = tag_draw(m->tag, x, y, 0);
-    if (enabled && m->state==TAG_SELECTION_STATE_COMPACT) hint_view("open tag selection menu", tag_bg);
+    if (enabled && m->state == TAG_SELECTION_STATE_COMPACT) hint_view("open tag selection menu", tag_bg);
     bool clicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), tag_bg);
     clicked *= m->state == TAG_SELECTION_STATE_COMPACT;
     if (!clicked) return;

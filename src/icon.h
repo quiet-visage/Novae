@@ -16,6 +16,9 @@ typedef enum {
     ICON_SWIPE,
     ICON_VISIBILY_ON,
     ICON_VISIBILY_OFF,
+    ICON_PLAY,
+    ICON_PAUSE,
+    ICON_SKIP,
     ICON_COUNT
 } Icon;
 
