@@ -231,8 +231,9 @@ void time_activity_graph_draw(float x, float y) {
 
         char days_ago_buf[64] = {0};
         size_t days_ago = get_days_ago(hover_data->date);
-        size_t days_ago_buf_len =
-            !days_ago ? snprintf(days_ago_buf, 64, "today") : snprintf(days_ago_buf, 64, "%ld days ago", days_ago);
+        size_t days_ago_buf_len = !days_ago        ? snprintf(days_ago_buf, 64, "today")
+                                  : days_ago == 1 ? snprintf(days_ago_buf, 64, "yesterday")
+                                                   : snprintf(days_ago_buf, 64, "%ld days ago", days_ago);
 
         {
             float fw = ff_measure_utf8(diligence_buf, strlen(diligence_buf), *g_style).width;

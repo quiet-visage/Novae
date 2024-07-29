@@ -5,6 +5,7 @@
 #include "colors.h"
 #define TAG_NAME_LIMIT 256
 
+#define MARGIN 30.
 #define STICKY(key) (IsKeyPressed(key) || IsKeyPressedRepeat(key))
 #define CENTER(AXIS_POS, OUT_DIM, IN_DIM) ((AXIS_POS) + (OUT_DIM) * .5f - (IN_DIM) * .5f)
 #define RADIUS_TO_ROUNDNESS(RAD, BIG_AXIS) (2 * RAD / BIG_AXIS)

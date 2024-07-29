@@ -2,6 +2,10 @@
 
 #include <stddef.h>
 
+#include "c32_vec.h"
+#include "cursor.h"
+#include "date.h"
+#include "editor.h"
 #include "tag.h"
 #include "task.h"
 
@@ -19,12 +23,6 @@ typedef struct {
     float rest;
     float idle;
 } Activity;
-
-typedef struct {
-    int year;
-    int month;
-    int day;
-} Date;
 
 typedef struct {
     Activity activity;

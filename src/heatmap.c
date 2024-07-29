@@ -9,43 +9,22 @@
 #include <string.h>
 #include <time.h>
 
+#include "clip.h"
 #include "colors.h"
 #include "config.h"
 #include "db.h"
 #include "db_cache.h"
 
-#define IS_LEAP_YEAR(YEAR) (!(YEAR % 4))
 #define ACTIVITY_MAP_CAP 1024
 #define UPDATE_EVERY_SEC 1
 #define MONTH_ROWS 6
 #define MONTH_COLUMNS 7
 #define HEATMAP_COLUMNS 3
-#define HEATMAP_MONTH_GAP (g_cfg.inner_gap * .5f)
-
-typedef enum {
-    MONTH_JAN,
-    MONTH_FEB,
-    MONTH_MAR,
-    MONTH_APR,
-    MONTH_MAY,
-    MONTH_JUN,
-    MONTH_JUL,
-    MONTH_AUG,
-    MONTH_SEP,
-    MONTH_OCT,
-    MONTH_NOV,
-    MONTH_DEC,
-} Month;
-
-typedef enum {
-    DAY_MON,
-    DAY_TUE,
-    DAY_WED,
-    DAY_THU,
-    DAY_FRI,
-    DAY_SAT,
-    DAY_SUN,
-} Week_Day;
+#define SIZE (6.0f)
+#define PAD (g_cfg.inner_gap * .25f + SIZE)
+#define HEATMAP_MONTH_GAP (g_cfg.inner_gap)
+#define COLOR_INDICATOR_HEIGHT 20.
+#include "date.h"
 
 typedef struct {
     int rec_idx;
@@ -55,80 +34,12 @@ typedef struct {
 float g_auto_update_chronometer = 1.0f;
 static FF_Style* g_style = &g_cfg.sstyle;
 
-static const char* get_month_name(Month month) {
-    switch (month) {
-        case MONTH_JAN: return "Jan";
-        case MONTH_FEB: return "Feb";
-        case MONTH_MAR: return "Mar";
-        case MONTH_APR: return "Apr";
-        case MONTH_MAY: return "May";
-        case MONTH_JUN: return "Jun";
-        case MONTH_JUL: return "Jul";
-        case MONTH_AUG: return "Aug";
-        case MONTH_SEP: return "Sep";
-        case MONTH_OCT: return "Oct";
-        case MONTH_NOV: return "Nov";
-        case MONTH_DEC: return "Dec";
-    }
-    assert(0);
-}
-
-static inline Date get_current_date(void) {
-    time_t now = time(0);
-    struct tm* local_tm = localtime(&now);
-    Date date = {.day = local_tm->tm_mday, .month = local_tm->tm_mon, .year = local_tm->tm_year + 1900};
-    return date;
-}
-
-static int get_number_of_days(int year, Month month) {
-    switch (month) {
-        case MONTH_JAN: return 31;
-        case MONTH_FEB: return IS_LEAP_YEAR(year) ? 29 : 28;
-        case MONTH_MAR: return 31;
-        case MONTH_APR: return 30;
-        case MONTH_MAY: return 31;
-        case MONTH_JUN: return 30;
-        case MONTH_JUL: return 31;
-        case MONTH_AUG: return 31;
-        case MONTH_SEP: return 30;
-        case MONTH_OCT: return 31;
-        case MONTH_NOV: return 30;
-        case MONTH_DEC: return 31;
-    }
-    assert(0);
-}
-
-static Week_Day get_week_day_from_time_str(char* str) {
-    assert(strlen(str) >= 3);
-    if (str[0] == 'M') return DAY_MON;
-    if (str[0] == 'T' && str[1] == 'u') return DAY_TUE;
-    if (str[0] == 'W') return DAY_WED;
-    if (str[0] == 'T') return DAY_THU;
-    if (str[0] == 'F') return DAY_FRI;
-    if (str[0] == 'S' && str[1] == 'a') return DAY_SAT;
-    if (str[0] == 'S') return DAY_SUN;
-    assert(0);
-}
-
-static Week_Day get_first_month_weekday(int year, Month month) {
-    struct tm tm = {0};
-    tm.tm_year = year;
-    tm.tm_mon = month;
-    tm.tm_mday = 0;
-    time_t time = mktime(&tm);
-    char* time_str = ctime(&time);
-    return get_week_day_from_time_str(time_str);
-}
-
 static bool is_today(int day, int month, int year) {
     time_t now;
     time(&now);
     struct tm* now_local = localtime(&now);
     return (now_local->tm_mday == day) && (now_local->tm_mon == month) && (now_local->tm_year == (year - 1900));
 }
-
-#define PAD (g_cfg.inner_gap * .25f)
-#define SIZE (6.0f)
 
 #define COLOR_LERP(A, B, P) ((Color){Lerp(A.r, B.r, P), Lerp(A.g, B.g, P), Lerp(A.b, B.b, P), Lerp(A.a, B.a, P)})
 static void draw_month(float ix, float iy, int month, int year) {
@@ -139,7 +50,7 @@ static void draw_month(float ix, float iy, int month, int year) {
     int day_n = 0;
     float max_days = get_number_of_days(year, month) + 1;
     size_t recs_count = max_days;
-    Rectangle recs[recs_count];
+    Vector2 points[recs_count];
 
     for (int i = 0; i < 6; i += 1) {
         for (int ii = 0; ii < 7; ii += 1, y += SIZE + PAD) {
@@ -147,10 +58,8 @@ static void draw_month(float ix, float iy, int month, int year) {
             day_n += 1;
             if (day_n >= max_days) break;
 
-            recs[day_n].x = x;
-            recs[day_n].y = y;
-            recs[day_n].width = SIZE;
-            recs[day_n].height = SIZE;
+            points[day_n].x = x;
+            points[day_n].y = y;
         }
         x += SIZE + PAD;
         y = iy;
@@ -172,15 +81,17 @@ static void draw_month(float ix, float iy, int month, int year) {
             hover_data[hover_data_len].rec_idx = i;
             hover_data_len += 1;
         }
-        // DrawCircle(recs[i].x, recs[i].y, 4.0f, color);
-        DrawRectangleRec(recs[i], color);
+
+        Vector2 point = points[i];
+        DrawCircleV(point, 5.0f, color);
+        if (is_today(i, month, year)) DrawCircleLinesV(point, 8., GET_RCOLOR(COLOR_FLAMINGO));
     }
 
     for (size_t i = 0; i < hover_data_len; i += 1) {
         Hover_Data* data = &hover_data[i];
         Vector2 mouse = GetMousePosition();
-        Rectangle rec = recs[data->rec_idx];
-        bool hovering = CheckCollisionPointRec(mouse, rec);
+        Vector2 point = points[data->rec_idx];
+        bool hovering = CheckCollisionPointCircle(mouse, point, SIZE);
         if (!hovering) continue;
 
         char thing[32] = {0};
@@ -234,12 +145,41 @@ void heatmap_draw(float x, float y) {
     float month_h = month_max_height();
 
     float max_w = heatmap_max_width();
-    Rectangle bg = {.x = x, .y = y, .width = max_w + g_cfg.outer_gap2, .height = month_h + g_cfg.outer_gap2};
-    DRAW_BG(bg, g_cfg.bg_radius, COLOR_BASE);
+    Rectangle bg = {.x = x,
+                    .y = y,
+                    .width = max_w + g_cfg.outer_gap2,
+                    .height = month_h + COLOR_INDICATOR_HEIGHT + g_cfg.outer_gap2};
+    // DrawRectangleLinesEx(bg, 1., WHITE);
 
     x = x + g_cfg.outer_gap;
     y = y + g_cfg.outer_gap;
 
     Date display_date = get_current_date();
-    draw_month_row(x, y, 3, display_date.year, display_date.month);
+    display_date.month -= 3;
+    for (size_t i = 0; i < 3; i++) {
+        draw_month_row(x, y, 3, display_date.year, display_date.month + 1);
+        display_date.month += 3;
+        y += month_h;
+    }
+
+    clip_begin_custom_shape();
+    Rectangle lohi_rec = {0};
+    lohi_rec.width = bg.width * .4;
+    lohi_rec.height = COLOR_INDICATOR_HEIGHT;
+    lohi_rec.x = bg.x + bg.width * .5 - lohi_rec.width * .5;
+    lohi_rec.y = y + month_h;
+    DrawRectangleRounded(lohi_rec, 1., 32, WHITE);
+    clip_end_custom_shape();
+
+    DrawRectangleGradientH(lohi_rec.x, lohi_rec.y, lohi_rec.width, lohi_rec.height, GET_RCOLOR(COLOR_BASE),
+                           GET_RCOLOR(COLOR_TEAL));
+
+    clip_end();
+
+    float ltext_w = ff_measure_utf32(L"lo", 2, g_cfg.sstyle).width;
+    float ltext_x = lohi_rec.x - g_cfg.inner_gap - ltext_w;
+    float htext_x = lohi_rec.x + lohi_rec.width + g_cfg.inner_gap;
+    float text_y = lohi_rec.y + lohi_rec.height * .5 - g_cfg.sstyle.typo.size * .5;
+    ff_draw_str32(L"lo", 2, ltext_x, text_y, (float*)g_cfg.global_projection, g_cfg.sstyle);
+    ff_draw_str32(L"hi", 2, htext_x, text_y, (float*)g_cfg.global_projection, g_cfg.sstyle);
 }

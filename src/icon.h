@@ -19,6 +19,8 @@ typedef enum {
     ICON_PLAY,
     ICON_PAUSE,
     ICON_SKIP,
+    ICON_CALENDAR_EDIT,
+    ICON_CALENDAR_RANGE,
     ICON_COUNT
 } Icon;
 

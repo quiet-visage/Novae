@@ -37,8 +37,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Profile")
-  target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g3 -pg)
-  target_link_options(${PROJECT_NAME} PRIVATE -pg)
+  target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g3 -pg)
+  target_link_options(${PROJECT_NAME}    PUBLIC -pg)
 endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 23)

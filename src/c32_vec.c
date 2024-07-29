@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include "fieldfusion.h"
 
 C32_Vec c32_vec_create(void) {
     C32_Vec ret = {.data = malloc(0x100), .cap = 0x100, .len = 0};
@@ -30,4 +31,10 @@ void c32_vec_del_str(C32_Vec* m, size_t pos, size_t len) {
     assert(m->len >= len);
     memmove(&m->data[pos], &m->data[pos + len], (m->len - (pos + len)) * sizeof(C32));
     m->len -= len;
+}
+
+void c32_vec_ins_str8(C32_Vec* m, size_t pos, const char* str, size_t len) {
+    C32 str32[len];
+    ff_utf8_to_utf32(str32, str, len);
+    c32_vec_ins_str(m, pos, str32, len);
 }

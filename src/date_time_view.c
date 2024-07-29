@@ -83,6 +83,8 @@ float date_time_width(void) {
     return max_side_items + g_cfg.inner_gap + time_str_width(now_local);
 }
 
+float date_time_height(void) { return g_time_style->typo.size + g_cfg.inner_gap + g_timer_finish_style->typo.size; }
+
 void date_time_view_all(float x, float y, float timer_secs) {
     time_t now = time(0);
     struct tm *now_local = localtime(&now);
@@ -105,7 +107,7 @@ void date_time_view_all(float x, float y, float timer_secs) {
     float side_max_w = MAX(month_str_w, week_day_str_w);
     // DrawRectangleLines(x, y, side_max_w, 100, WHITE);
     float time_x = x + side_max_w + g_cfg.inner_gap;
-    float time_y = y;
+    float time_y = y + (g_side_style->typo.size * 2 + g_cfg.inner_gap) * .5 - g_time_style->typo.size * .5;
     time_view(now_local, time_x, time_y);
 
     float timer_finish_y = y + g_time_style->typo.size + g_cfg.inner_gap;

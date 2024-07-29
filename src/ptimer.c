@@ -5,6 +5,7 @@
 
 #include "button.h"
 #include "chrono.h"
+#include "clip.h"
 #include "colors.h"
 #include "config.h"
 #include "fieldfusion.h"
@@ -28,13 +29,24 @@ static void set_current_time_target_secs(PTimer *m) {
 }
 
 static void draw_timer_progress(float cx, float cy, float radius, float ring_width, float perc) {
-    float ig = 270;
-    float eg = ig + perc * 360.;
-    DrawRing((Vector2){cx, cy}, radius, radius + ring_width, 0., 360., 64, GET_RCOLOR(COLOR_BASE));
+    const float nob_radius = ring_width;
+    float ig = -202.5;
+    float eg = ig + perc * 225.;
+    DrawRing((Vector2){cx, cy}, radius, radius + ring_width, -202.5, 22.5, 64, GET_RCOLOR(COLOR_BASE));
+
+    clip_begin_custom_shape();
     DrawRing((Vector2){cx, cy}, radius, radius + ring_width, ig, eg, 64, SKYBLUE);
     float d = eg - 180.;
     float r = radius + ring_width * .5;
-    DrawCircle(r * cosf((d - 180) * DEG2RAD) + cx, r * sinf(-(d * DEG2RAD)) + cy, ring_width, GET_RCOLOR(COLOR_SKY));
+    DrawCircle(r * cosf((d - 180) * DEG2RAD) + cx, r * sinf(-(d * DEG2RAD)) + cy, nob_radius, GET_RCOLOR(COLOR_SKY));
+    clip_end_custom_shape();
+
+    float tradius = radius + ring_width;
+    float x = cx - tradius - nob_radius * .5;
+    float y = cy - tradius - nob_radius * .5;
+    float size = tradius * 2 + nob_radius;
+    DrawRectangleGradientH(x, y, size, size, GET_RCOLOR(COLOR_BLUE), GET_RCOLOR(COLOR_GREEN));
+    clip_end();
 }
 
 void ptimer_create(PTimer *m) {
@@ -42,8 +54,6 @@ void ptimer_create(PTimer *m) {
     m->alarm = LoadSound(ALARM_PATH);
     m->interrupt = btn_create();
     m->skip = btn_create();
-    // btn_set_label(&m->interrupt, "start");
-    // btn_set_label(&m->skip, "skip");
     m->state = PTIMER_STATE_PAUSED;
     m->pomo = PTIMER_PSTATE_FOCUS;
     m->mo = motion_new();

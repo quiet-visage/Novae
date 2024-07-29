@@ -56,6 +56,7 @@ static U8 handle_char_input(Editor* m, C32_Vec* buf) {
 inline static void move_cursor_left(Editor* m) {
     if (m->cursor) m->cursor -= 1;
 }
+
 inline static void move_cursor_right(Editor* m, size_t buf_len) {
     if (m->cursor < buf_len) m->cursor += 1;
 }
