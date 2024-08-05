@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #define IS_LEAP_YEAR(YEAR) (!(YEAR % 4))
 
 typedef enum {
@@ -33,8 +34,14 @@ typedef struct {
     int day;
 } Date;
 
+int date_cmp(Date a, Date b);
 Week_Day get_first_month_weekday(int year, Month month);
 Week_Day get_week_day_from_time_str(char* str);
 int get_number_of_days(int year, Month month);
-const char* get_month_name(Month month);
+const char* get_month_name_short(Month month);
+const char* get_month_name_full(Month month);
+const char* get_week_day_name_short(Week_Day wday);
 Date get_current_date(void);
+void date_incr_month(Date* m);
+void date_decr_month(Date* m);
+long day_diffenrence(Date date_end, Date date_begin);

@@ -21,7 +21,7 @@
 #include "motion.h"
 #include "tag.h"
 
-#define OPEN_VIEW_X_RATIO .5f
+#define OPEN_VIEW_X_RATIO .35f
 #define HUE_RAD 64.f
 #define HUE_RING_W 12.f
 #define SAT_RAD (HUE_RAD - HUE_RING_W - 5.f)

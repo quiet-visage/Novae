@@ -3,6 +3,7 @@
 #include "c32_vec.h"
 #include "cursor.h"
 #include "date.h"
+#include <raylib.h>
 
 typedef enum {
     DATE_EDIT_STATE_NORMAL,
@@ -18,6 +19,7 @@ typedef enum {
 typedef struct {
     Date_Edit_State state;
     Date_Edit_Placement placement;
+    Date min_date;
     Date input_date;
     Cursor cursor_view;
     size_t cursor;
@@ -26,4 +28,6 @@ typedef struct {
 } Date_Edit;
 
 Date_Edit date_edit_create(C32_Vec* buf);
-bool date_edit_view(Date_Edit* m, C32_Vec* buf, float x, float y, bool focused);
+float date_edit_width(C32_Vec* buf);
+float date_edit_height(void);
+bool date_edit_view(Date_Edit* m, C32_Vec* buf, Vector2 pos, bool focused);

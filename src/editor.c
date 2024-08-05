@@ -284,13 +284,25 @@ void editor_view(Editor* m, C32_Vec* buf, float px, float py, bool focused) {
 
     float cursor_offset = m->horz_scroll_mo.position[0];
     float x = px + g_cfg.inner_gap;
+    float coffset = px + g_cfg.inner_gap;
+    if (m->flags & EDITOR_CENTER_INPUT) {
+        float text_width = 0.;
+        if (!buf->len) {
+            // text_width = ff_measure_utf8(m->placeholder, strlen(m->placeholder), *g_style).width;
+        } else {
+            text_width = ff_measure_utf32(buf->data, buf->len, *g_style).width;
+        }
+        x = px + m->width * .5 - text_width * .5;
+        coffset = x;
+    }
 
     FF_Style style = *g_style;
     style.typo.color &= ~0xff;
     style.typo.color |= alpha_inherit_get_alpha();
     ff_draw_str32(buf->data, buf->len, x, py, (float*)projection, style);
 
-    float cursor_x = get_cursor_x(buf->data, buf->len, *g_style, m->cursor, px) - cursor_offset + g_cfg.inner_gap;
+    float cursor_x = get_cursor_x(buf->data, buf->len, *g_style, m->cursor, 0.) - cursor_offset + coffset;
+
     float cursor_y = py + g_style->typo.size * .1;
     cursor_draw(&m->cursor_view, cursor_x, cursor_y);
 

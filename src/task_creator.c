@@ -43,6 +43,7 @@ Task_Creator task_creator_create() {
     ret.digit_ed.limit = 3;
     ret.name_hor_motion.f = 3.0f;
     ret.name_hor_motion.z = 1.0f;
+    editor_set_flag(&ret.name_ed, EDITOR_CENTER_INPUT);
     editor_unset_flag(&ret.name_ed, EDITOR_DRAW_BG);
     editor_set_flag(&ret.digit_ed, EDITOR_DIGIT_ONLY);
     editor_unset_flag(&ret.digit_ed, EDITOR_DRAW_BG);
@@ -59,7 +60,7 @@ void task_creator_destroy(Task_Creator* m) {
 }
 
 static void handle_digit_edit(Task_Creator* m, Rectangle left_ed_bg, bool enabled) {
-    m->digit_ed.width = left_ed_bg.width;
+    // m->digit_ed.width = left_ed_bg.width;
     left_ed_bg.width = MAX(left_ed_bg.width, g_style->typo.size);
     float t_width = MAX(left_ed_bg.width, editor_get_text_width(&m->digit_ed, &m->digit_buf));
     clip_begin(left_ed_bg);
@@ -71,9 +72,7 @@ static void handle_digit_edit(Task_Creator* m, Rectangle left_ed_bg, bool enable
 
 static void handle_name_edit(Task_Creator* m, Rectangle name_bg, bool enabled) {
     m->name_ed.width = name_bg.width;
-    editor_set_flag(&m->name_ed, EDITOR_CENTER_INPUT);
     clip_begin(name_bg);
-    name_bg.x = CENTER(name_bg.x, name_bg.width, editor_get_text_width(&m->name_ed, &m->name_buf));
     editor_view(&m->name_ed, &m->name_buf, name_bg.x, name_bg.y, enabled);
     clip_end();
 }
@@ -152,7 +151,7 @@ Task_Creator_Ret task_creator_draw(Task_Creator* m, Task* out, float x, float y,
     clip_end();
 
     Rectangle name_rec;
-    name_rec.width = bg.width * .55f;
+    name_rec.width = bg.width * .6f;
     name_rec.x = CENTER(bg.x, bg.width, name_rec.width);
     name_rec.height = g_style->typo.size * 1.5f;
     name_rec.y = bg.y + g_cfg.outer_gap;
@@ -167,11 +166,15 @@ Task_Creator_Ret task_creator_draw(Task_Creator* m, Task* out, float x, float y,
     result.tag_sel_x = bar_rec.x;
     result.tag_sel_y = bar_rec.y + bar_rec.height + g_cfg.inner_gap;
 
+    result.cal_sel_x = bar_rec.x + bar_rec.width * .5;
+    result.cal_sel_y = bar_rec.y + bar_rec.height + g_cfg.inner_gap;
+
     // float tag_x = bar_rec.x;
     float tag_y = bar_rec.y + bar_rec.height + g_cfg.inner_gap;
 
     Rectangle left_ed_bg;
-    left_ed_bg.width = ff_measure_utf32(m->digit_buf.data, m->digit_buf.len, *g_style).width;
+    left_ed_bg.width = MAX(ff_measure_utf32(m->digit_buf.data, m->digit_buf.len, *g_style).width,
+                           ff_measure_utf32(L"0", 1, *g_style).width);
     left_ed_bg.x = bar_rec.x + bar_rec.width - left_ed_bg.width;
     left_ed_bg.height = g_style->typo.size;
     left_ed_bg.y = tag_y;

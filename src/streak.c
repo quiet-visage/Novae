@@ -77,17 +77,24 @@ void streak_draw(float x, float y) {
     float ring_particle_x = x + t_width * .5f - ring_particle_sz * .5f;
     float ring_particle_y = y + g_style->typo.size * .5f - ring_particle_sz * .5f;
 
-    blur_begin();
-    draw_particle(g_deg, GET_RCOLOR(COLOR_SKY));
-    Color col = GET_RCOLOR(COLOR_TEAL);
-    draw_particle(g_deg + 180.f, col);
-    Post_Proc_Draw_Info draw_info = blur_end_return(BASE_IMG_SIZE, BASE_IMG_SIZE, 4);
+    static bool r1 = 0;
+    static Post_Proc_Draw_Info draw_info = {0};
+    if (!r1) {
+        blur_begin();
+        draw_particle(g_deg, GET_RCOLOR(COLOR_SKY));
+        Color col = GET_RCOLOR(COLOR_TEAL);
+        draw_particle(g_deg + 180.f, col);
+        draw_info = blur_end_return(BASE_IMG_SIZE, BASE_IMG_SIZE, 4);
+        r1 = 1;
+    }
     BeginShaderMode(shader_get(SHADER_BLOOM));
-    draw_info.dest.x = ring_particle_x;
-    draw_info.dest.y = ring_particle_y;
+    draw_info.dest.x = ring_particle_x + ring_particle_sz * .5;
+    draw_info.dest.y = ring_particle_y + ring_particle_sz * .5;
     draw_info.dest.width = ring_particle_sz;
     draw_info.dest.height = ring_particle_sz;
-    DrawTexturePro(draw_info.texture, draw_info.source, draw_info.dest, (Vector2){0}, 0, WHITE);
+    Vector2 origin = {draw_info.dest.width * .5, draw_info.dest.height * .5};
+    float rotation = GetTime() * 1e2;
+    DrawTexturePro(draw_info.texture, draw_info.source, draw_info.dest, origin, rotation, WHITE);
     EndShaderMode();
 }
 

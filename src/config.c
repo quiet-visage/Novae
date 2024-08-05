@@ -20,7 +20,7 @@ void config_init(void) {
 
     g_cfg.inner_gap = 12.0f;
     g_cfg.inner_gap2 = 2 * g_cfg.inner_gap;
-    g_cfg.outer_gap = 16.0f;
+    g_cfg.outer_gap = 20.0f;
     g_cfg.outer_gap2 = 2 * g_cfg.outer_gap;
 
     ff_get_ortho_projection(0, g_cfg.window_width, g_cfg.window_height, 0, -1.0f, 1.0f, g_cfg.global_projection);

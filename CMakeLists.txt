@@ -6,40 +6,36 @@ project(novae C)
 file(GLOB_RECURSE SRCS "src/*.c" "src/*.h" "src/*/*.h" "src/*/*.c")
 add_executable(${PROJECT_NAME} ${SRCS})
 
-set(CMAKE_C_FLAGS_SANITIZE
-    ${CMAKE_C_FLAGS_DEBUG}
-    CACHE STRING "Flags used by the C compiler during sanitize builds." FORCE)
-set(CMAKE_EXE_LINKER_FLAGS_SANITIZE
-    ${CMAKE_EXE_LINKER_FLAGS_DEBUG}
-    CACHE STRING "Flags used for linking binaries during sanitize builds."
-          FORCE)
 
-message(
-  "* build type options are : None Debug Release RelWithDebInfo MinSizeRel Sanitize Profile"
+set(CMAKE_C_FLAGS_PROFILE
+  "-pg -g3")
+set(CMAKE_EXE_LINKER_FLAGS_PROFILE
+  "-pg")
+
+set(CMAKE_C_FLAGS_SANITIZE
+  "-g3 -fsanitize=address")
+set(CMAKE_EXE_LINKER_FLAGS_SANITIZE
+  "-fsanitize=address")
+
+set(CMAKE_C_FLAGS_RELEASE
+  "-O3")
+set(CMAKE_EXE_LINKER_FLAGS_RELEASE)
+
+mark_as_advanced(
+  CMAKE_C_FLAGS_PROFILE
+  CMAKE_EXE_LINKER_FLAGS_PROFILE
+  CMAKE_C_FLAGS_SANITIZE
+  CMAKE_EXE_LINKER_FLAGS_SANITIZE
+  CMAKE_C_FLAGS_RELEASE
+  CMAKE_EXE_LINKER_FLAGS_RELEASE
 )
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug)
-endif()
+message(
+  "* build type options are : None Debug Release  Sanitize Profile"
+)
 
 message("* build type is : ${CMAKE_BUILD_TYPE}")
 
-
-if(CMAKE_BUILD_TYPE STREQUAL "Sanitize")
-  target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g3 -fsanitize=address)
-  target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
-endif()
-
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
-  target_compile_options(${PROJECT_NAME} PRIVATE -Ofast)
-  add_compile_options(-Ofast)
-  # target_link_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
-endif()
-
-if(CMAKE_BUILD_TYPE STREQUAL "Profile")
-  target_compile_options(${PROJECT_NAME} PUBLIC -O0 -g3 -pg)
-  target_link_options(${PROJECT_NAME}    PUBLIC -pg)
-endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY C_STANDARD 23)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall )

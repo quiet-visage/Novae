@@ -35,7 +35,6 @@ TODO: on slide button choide fade in the text
 #include "scr_space.h"
 #include "sdf_draw.h"
 #include "shader.h"
-#include "std_dev.h"
 #include "streak.h"
 #include "tag_selection.h"
 #include "task.h"
@@ -199,7 +198,7 @@ static void handle_tag_selection(float x, float y) {
 static void handle_calendar_pick(float x, float y) {
     bool is_open = g_date_pick.state == DATE_PICK_STATE_OPEN;
     if (is_open) g_focus = FOCUS_STATE_CALENDAR_PICK;
-    Date_Range *result = date_pick_view(&g_date_pick, 100, 100, 1, is_open);
+    Date_Range *result = date_pick_view(&g_date_pick, (Vector2){x, y}, 1, is_open);
 
     if (result) {
         g_focus = FOCUS_STATE_TASK_CREATOR;
@@ -287,7 +286,7 @@ void main_loop() {
         heatmap_draw(heatmap_x, date_time_y + date_time_height() + g_cfg.inner_gap);
 
         handle_tag_selection(task_creator_ret.tag_sel_x, task_creator_ret.tag_sel_y);
-        handle_calendar_pick(100, 100);
+        handle_calendar_pick(task_creator_ret.cal_sel_x, task_creator_ret.cal_sel_y);
 
         hint_end_frame();
         end_frame();

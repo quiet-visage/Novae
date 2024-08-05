@@ -21,6 +21,8 @@ typedef enum {
     ICON_SKIP,
     ICON_CALENDAR_EDIT,
     ICON_CALENDAR_RANGE,
+    ICON_NEXT,
+    ICON_PREV,
     ICON_COUNT
 } Icon;
 

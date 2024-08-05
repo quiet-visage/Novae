@@ -83,7 +83,7 @@ static void draw_month(float ix, float iy, int month, int year) {
         }
 
         Vector2 point = points[i];
-        DrawCircleV(point, 5.0f, color);
+        DrawPoly(point, 8, 5., 0., color);
         if (is_today(i, month, year)) DrawCircleLinesV(point, 8., GET_RCOLOR(COLOR_FLAMINGO));
     }
 
@@ -108,7 +108,7 @@ static void draw_month(float ix, float iy, int month, int year) {
 }
 
 static void draw_month_name(Month month, float x, float month_w, float y) {
-    const char* name = get_month_name(month);
+    const char* name = get_month_name_short(month);
     size_t name_len = strlen(name);
     float nx = CENTER(x, month_w, ff_measure_utf8(name, name_len, *g_style).width);
     ff_draw_str8(name, strlen(name), nx, y, (float*)g_cfg.global_projection, *g_style);
