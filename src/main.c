@@ -170,8 +170,8 @@ static void add_task() {
     char task_name[g_new_task.name_len + 1];
     task_name[g_new_task.name_len] = 0;
     ff_utf32_to_utf8(task_name, g_new_task.name, g_new_task.name_len);
-    g_new_task.db_id =
-        db_create_task(task_name, g_new_task.done, g_new_task.left, tag_selection_get_selected(&g_tag_selection)->id);
+    g_new_task.db_id = db_create_task(task_name, g_new_task.done, g_new_task.left,
+                                      tag_selection_get_selected(&g_tag_selection)->id, 0);
     g_new_task.tag_id = tag_selection_get_selected(&g_tag_selection)->id;
     task_list_push(&g_task_list, g_new_task);
     g_new_task = task_create();

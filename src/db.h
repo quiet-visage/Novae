@@ -2,10 +2,7 @@
 
 #include <stddef.h>
 
-#include "c32_vec.h"
-#include "cursor.h"
 #include "date.h"
-#include "editor.h"
 #include "tag.h"
 #include "task.h"
 
@@ -45,7 +42,7 @@ size_t db_get_tag_count(void);
 void db_get_tags(Tag* out);  // allocates memory for tag.name, user needs to free it
 
 void db_print_table(void);
-Task_Id db_create_task(const char* name, int done, int left, size_t tag_id);
+Task_Id db_create_task(const char* name, int done, int left, size_t tag_id, Date_Range* date_range);
 void db_incr_done(int id);
 void db_set_completed(int id);
 void db_set_done(int id, int val);

@@ -9,6 +9,7 @@
 
 #include "colors.h"
 #include "config.h"
+#include "date.h"
 #include "str.h"
 #include "task.h"
 
@@ -77,6 +78,7 @@
     "name TEXT NOT NULL,"             \
     "color INT UNSIGNED NOT NULL,"    \
     "PRIMARY KEY (tag_id AUTOINCREMENT));"
+
 #define SQLCMD_CREATE_TABLE_TASK           \
     "CREATE TABLE task ("                  \
     "task_id INTEGER NOT NULL UNIQUE,"     \
@@ -89,6 +91,8 @@
     "idle  FLOAT DEFAULT 0,"               \
     "date_completed DATETIME,"             \
     "tag_id INTEGER NOT NULL,"             \
+    "date_from DATE DEFAULT 0,"            \
+    "date_to DATE DEFAULT 0,"              \
     "PRIMARY KEY (task_id AUTOINCREMENT)," \
     "FOREIGN KEY (tag_id) REFERENCES tag(tag_id));"
 
@@ -127,6 +131,9 @@ typedef enum {
     TBL_TASK_FIELD_IDLE,
     TBL_TASK_FIELD_DATE_COMPLETED,
     TBL_TASK_FIELD_TAG_FK,
+    TBL_TASK_FIELD_DATE_FROM,
+    TBL_TASK_FIELD_DATE_TO,
+    TBL_TASK_FIELD_COUNT,
 } Table_Task_Info_Field;
 
 typedef enum {
@@ -149,6 +156,11 @@ typedef enum {
     TABLE_INFO_KIND_DFLTVALUE = 4,
     TABLE_INFO_KIND_ISPK = 5,
 } Table_Info_Kind_Idx;
+
+typedef struct {
+    Table_Task_Info_Field stage;
+    size_t field_count;
+} Verify_Table_Task_Arg;
 
 typedef struct {
     int id;
@@ -257,6 +269,16 @@ static bool is_task_stage_valid(Table_Task_Info_Field stage, char **col_vals) {
                     !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "INTEGER") &&
                     !strcmp(col_vals[TABLE_INFO_KIND_NOTNULL], "1"));
         } break;
+        case TBL_TASK_FIELD_DATE_FROM: {
+            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "date_from") &&
+                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "DATE") &&
+                    !strcmp(col_vals[TABLE_INFO_KIND_DFLTVALUE], "0"));
+        } break;
+        case TBL_TASK_FIELD_DATE_TO: {
+            return (!strcmp(col_vals[TABLE_INFO_KIND_NAME], "date_to") &&
+                    !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "DATE") &&
+                    !strcmp(col_vals[TABLE_INFO_KIND_DFLTVALUE], "0"));
+        } break;
     };
     return 1;
 }
@@ -278,12 +300,13 @@ static bool is_tag_stage_valid(Table_Tag_Info_Field stage, char **col_vals) {
     return 1;
 }
 
-static int verify_table_task_info_cb(void *stage_arg, int col_len, char **col_val, char **col_name) {
+static int verify_table_task_info_cb(void *void_arg, int col_len, char **col_val, char **col_name) {
     assert(col_len == 6);
-    Table_Task_Info_Field *stage = (Table_Task_Info_Field *)stage_arg;
-    bool is_valid = is_task_stage_valid(*stage, col_val);
-    if (!is_valid) printf("failed task verification stage: %d", *stage);
-    *stage += 1;
+    Verify_Table_Task_Arg *arg = void_arg;
+    bool is_valid = is_task_stage_valid(arg->stage, col_val);
+    if (!is_valid) printf("failed task verification stage: %d", arg->stage);
+    arg->stage += 1;
+    arg->field_count += 1;
     return !is_valid;
 }
 
@@ -315,9 +338,12 @@ static int print_output_cb(void *, int len, char **vals, char **cols) {
 }
 
 static bool is_table_task_valid(void) {
-    Table_Task_Info_Field stage = 0;
-    int err = sqlite3_exec(g_db, SQLCMD_GET_TABLE_INFO(task), verify_table_task_info_cb, &stage, 0);
+    Verify_Table_Task_Arg arg = {0};
+    int err = sqlite3_exec(g_db, SQLCMD_GET_TABLE_INFO(task), verify_table_task_info_cb, &arg, 0);
     assert(err == SQLITE_OK || err == SQLITE_ABORT);
+
+    if (arg.field_count != TBL_TASK_FIELD_COUNT) return 0;
+
     return err != SQLITE_ABORT;
 }
 
@@ -399,7 +425,7 @@ void db_init(void) {
     g_batch_cmd_str = str_create();
 
     if (!default_task_exists()) {
-        g_default_task_id = db_create_task(DEFAULT_TASK_NAME, 0, 0, 0);
+        g_default_task_id = db_create_task(DEFAULT_TASK_NAME, 0, 0, 0, 0);
     } else {
         g_default_task_id = get_default_task_id();
     }
@@ -413,14 +439,22 @@ void db_terminate(void) {
 
 void db_print_table(void) { db_exec_cmd(SQLCMD_QUERY_TABLE(task), print_output_cb, 0); }
 
-#define DB_CREATE_TASK_CMD_PREFIX "INSERT INTO task (name, date_created, done, left, tag_id) "
+#define DB_CREATE_TASK_CMD_PREFIX "INSERT INTO task (name, date_created, done, left, tag_id, date_from, date_to) "
 #define DB_CREATE_TASK_CMD_PREFIX_LEN sizeof(DB_CREATE_TASK_CMD_PREFIX)
-int db_create_task(const char *name, int done, int left, size_t tag_id) {
+int db_create_task(const char *name, int done, int left, size_t tag_id, Date_Range *range) {
+    Date_Range range0 = {0};
+    if (!range) range = &range0;
+
     static char sql_cmd[SQLCMD_STR_INSERT_CAP] = DB_CREATE_TASK_CMD_PREFIX;
     char *write_ptr = &sql_cmd[DB_CREATE_TASK_CMD_PREFIX_LEN - 1];
     memset(write_ptr, 0, SQLCMD_STR_INSERT_CAP - DB_CREATE_TASK_CMD_PREFIX_LEN);
+
     printf("%ld\n", tag_id);
-    snprintf(write_ptr, SQLCMD_STR_INSERT_CAP, "VALUES ('%s', datetime('now'), %d, %d, %ld)", name, done, left, tag_id);
+    snprintf(write_ptr, SQLCMD_STR_INSERT_CAP,
+             "VALUES ('%s', datetime('now'), %d, %d, %ld, date('%d-%d-%d'), date('%d-%d-%d'))", name, done, left,
+             tag_id, range->from.year, range->from.month, range->from.day, range->to.year, range->to.month,
+             range->to.day);
+
     db_exec_cmd(sql_cmd, 0, 0);
     int id = sqlite3_last_insert_rowid(g_db);
     return id;

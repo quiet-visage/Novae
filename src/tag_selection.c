@@ -338,7 +338,9 @@ static void draw_tags(Tag_Selection* m, Tag* tags, size_t tags_len, float x, flo
         }
         Rectangle bounds = tag_draw(&tag, tag_x, tag_y, 0);
         if (m->selected == i) {
-            DrawRectangleRoundedLines(bounds, 0x100, g_cfg.rounded_rec_segments, 2.f, GET_RCOLOR(COLOR_TEAL));
+            Color color = GET_RCOLOR(COLOR_TEAL);
+            color.a = alpha_inherit_get_alpha();
+            DrawRectangleRoundedLines(bounds, 0x100, g_cfg.rounded_rec_segments, 2.f, color);
         }
 
         if (is_mouse_pressed && CheckCollisionPointRec(mouse_pos, bounds)) {

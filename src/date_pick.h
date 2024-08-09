@@ -3,7 +3,6 @@
 #include "button.h"
 #include "c32_vec.h"
 #include "date_edit.h"
-#include "editor.h"
 
 typedef enum {
     DATE_PICK_STATE_COMPACT = 0,
@@ -14,11 +13,6 @@ typedef enum {
     DATE_PICK_FOCUS_EDIT_FROM = 0,
     DATE_PICK_FOCUS_EDIT_TO,
 } Date_Pick_Focus;
-
-typedef struct {
-    Date from;
-    Date to;
-} Date_Range;
 
 typedef struct {
     Date_Pick_State state;
@@ -35,7 +29,7 @@ typedef struct {
     Date_Edit to_edit;
     Motion mo;
     float target_alpha;
-}Date_Pick;
+} Date_Pick;
 
 Date_Pick date_pick_create(void);
 Date_Range* date_pick_view(Date_Pick* m, Vector2 cpos, bool enable_hint, bool enable_input);

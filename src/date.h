@@ -34,6 +34,11 @@ typedef struct {
     int day;
 } Date;
 
+typedef struct {
+    Date from;
+    Date to;
+} Date_Range;
+
 int date_cmp(Date a, Date b);
 Week_Day get_first_month_weekday(int year, Month month);
 Week_Day get_week_day_from_time_str(char* str);
