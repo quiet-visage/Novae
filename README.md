@@ -9,7 +9,9 @@
   <a href="#compiling">Compiling</a> 
 </p>
 
-// TODO
+![novae_early_dev](https://github.com/user-attachments/assets/3ea95cba-f8db-4956-8ff2-f8777a65d354)
+
+
 > **Notes**
 > + App is very early in development
 > + Currently the only supported OS is linux
