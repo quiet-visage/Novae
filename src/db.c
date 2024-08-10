@@ -109,6 +109,9 @@ typedef enum {
     LOAD_TASK_VAL_FIELD_LEFT,
     LOAD_TASK_VAL_FIELD_DATE_COMPLETED,
     LOAD_TASK_VAL_FIELD_TAG_ID,
+    LOAD_TASK_VAL_FIELD_DATE_CREATED,
+    LOAD_TASK_VAL_FIELD_DATE_FROM,
+    LOAD_TASK_VAL_FIELD_DATE_TO,
 } Load_Task_Val_Field;
 
 typedef enum {
@@ -492,6 +495,19 @@ size_t db_get_todays_task_count(void) {
     return count;
 }
 
+static Date sql_date_str_to_date(char *str) {
+    if (!str) {return (Date){0};}
+    char *year_beg = &str[0];
+    char *month_beg = &str[5];
+    char *day_beg = &str[8];
+    Date result = {
+        .year = strtoul(year_beg, 0, 10),
+        .month = strtoul(month_beg, 0, 10) - 1,
+        .day = strtoul(day_beg, 0, 10),
+    };
+    return result;
+}
+
 static int db_load_todays_task_cb(void *task_ptr_arg, int len, char **vals, char **cols) {
     Task **task_pp = task_ptr_arg;
     Task *task = *task_pp;
@@ -508,6 +524,9 @@ static int db_load_todays_task_cb(void *task_ptr_arg, int len, char **vals, char
     task->left = strtoul(vals[LOAD_TASK_VAL_FIELD_LEFT], 0, 10);
     task->complete = vals[LOAD_TASK_VAL_FIELD_DATE_COMPLETED];
     task->tag_id = strtoul(vals[LOAD_TASK_VAL_FIELD_TAG_ID], 0, 10);
+    task->date_created = sql_date_str_to_date(vals[LOAD_TASK_VAL_FIELD_DATE_CREATED]);
+    task->date_range.from = sql_date_str_to_date(vals[LOAD_TASK_VAL_FIELD_DATE_FROM]);
+    task->date_range.to = sql_date_str_to_date(vals[LOAD_TASK_VAL_FIELD_DATE_TO]);
 
     *task_pp += 1;
     return 0;
@@ -515,7 +534,7 @@ static int db_load_todays_task_cb(void *task_ptr_arg, int len, char **vals, char
 
 void db_get_todays_task(Task *out) {
     db_exec_cmd(
-        "SELECT task_id, name, done, left, date_completed, tag_id FROM task "
+        "SELECT task_id, name, done, left, date_completed, tag_id, date_created, date_from, date_to FROM task "
         "WHERE "
         "date_created >= "
         "date('now');",
@@ -540,18 +559,6 @@ size_t db_get_all_time_activity_count(void) {
         "diligence > 0 GROUP BY DATE(date_created)",
         db_get_count_cb, &count);
     return count;
-}
-
-static Date sql_date_str_to_date(char *str) {
-    char *year_beg = &str[0];
-    char *month_beg = &str[5];
-    char *day_beg = &str[8];
-    Date result = {
-        .year = strtoul(year_beg, 0, 10),
-        .month = strtoul(month_beg, 0, 10) - 1,
-        .day = strtoul(day_beg, 0, 10),
-    };
-    return result;
 }
 
 static int get_time_activity_cb(void *arg1, int len, char **vals, char **cols) {
