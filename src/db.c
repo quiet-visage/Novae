@@ -442,21 +442,21 @@ void db_terminate(void) {
 
 void db_print_table(void) { db_exec_cmd(SQLCMD_QUERY_TABLE(task), print_output_cb, 0); }
 
-#define DB_CREATE_TASK_CMD_PREFIX "INSERT INTO task (name, date_created, done, left, tag_id, date_from, date_to) "
-#define DB_CREATE_TASK_CMD_PREFIX_LEN sizeof(DB_CREATE_TASK_CMD_PREFIX)
 int db_create_task(const char *name, int done, int left, size_t tag_id, Date_Range *range) {
     Date_Range range0 = {0};
     if (!range) range = &range0;
 
-    static char sql_cmd[SQLCMD_STR_INSERT_CAP] = DB_CREATE_TASK_CMD_PREFIX;
-    char *write_ptr = &sql_cmd[DB_CREATE_TASK_CMD_PREFIX_LEN - 1];
-    memset(write_ptr, 0, SQLCMD_STR_INSERT_CAP - DB_CREATE_TASK_CMD_PREFIX_LEN);
+    static char sql_cmd[SQLCMD_STR_INSERT_CAP] = {0};
 
     printf("%ld\n", tag_id);
-    snprintf(write_ptr, SQLCMD_STR_INSERT_CAP,
-             "VALUES ('%s', datetime('now'), %d, %d, %ld, date('%d-%d-%d'), date('%d-%d-%d'))", name, done, left,
-             tag_id, range->from.year, range->from.month, range->from.day, range->to.year, range->to.month,
-             range->to.day);
+    snprintf(
+        sql_cmd, SQLCMD_STR_INSERT_CAP,
+        "INSERT INTO task "
+        "(name,date_created,done,left,tag_id,date_from,date_to) VALUES ('%s',datetime('now'),%d,%d,%ld,date('%d-%02d-%02d'),"
+        "date('%d-%02d-%02d'))",
+        name, done, left, tag_id, range->from.year, range->from.month, range->from.day, range->to.year, range->to.month,
+        range->to.day);
+    printf("%s\n", sql_cmd);
 
     db_exec_cmd(sql_cmd, 0, 0);
     int id = sqlite3_last_insert_rowid(g_db);
@@ -496,7 +496,9 @@ size_t db_get_todays_task_count(void) {
 }
 
 static Date sql_date_str_to_date(char *str) {
-    if (!str) {return (Date){0};}
+    if (!str) {
+        return (Date){0};
+    }
     char *year_beg = &str[0];
     char *month_beg = &str[5];
     char *day_beg = &str[8];
