@@ -171,7 +171,7 @@ static void add_task() {
     task_name[g_new_task.name_len] = 0;
     ff_utf32_to_utf8(task_name, g_new_task.name, g_new_task.name_len);
     g_new_task.db_id = db_create_task(task_name, g_new_task.done, g_new_task.left,
-                                      tag_selection_get_selected(&g_tag_selection)->id, 0);
+                                      tag_selection_get_selected(&g_tag_selection)->id, &g_new_task.date_range);
     g_new_task.tag_id = tag_selection_get_selected(&g_tag_selection)->id;
     task_list_push(&g_task_list, g_new_task);
     g_new_task = task_create();
@@ -198,12 +198,17 @@ static void handle_tag_selection(float x, float y) {
 static void handle_calendar_pick(float x, float y) {
     bool is_open = g_date_pick.state == DATE_PICK_STATE_OPEN;
     if (is_open) g_focus = FOCUS_STATE_CALENDAR_PICK;
+    static Date_Range chosen_range = {0};
     Date_Range *result = date_pick_view(&g_date_pick, (Vector2){x, y}, 1, is_open);
 
     if (result) {
         g_focus = FOCUS_STATE_TASK_CREATOR;
         if (result != (Date_Range *)-1) {
-            // TODO
+            chosen_range = *result;
+            g_new_task.date_range = chosen_range;
+        } else {
+            chosen_range = (Date_Range){0};
+            g_new_task.date_range = chosen_range;
         }
     }
 }

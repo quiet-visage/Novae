@@ -239,6 +239,8 @@ static Date_Range* open_view(Date_Pick* m, bool enable_menu_input) {
         else {
             m->state = DATE_PICK_STATE_COMPACT;
             m->target_alpha = 0;
+            m->date_range.from = m->from_edit.input_date;
+            m->date_range.to = m->to_edit.input_date;
             return &m->date_range;
         }
     }
