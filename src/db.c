@@ -448,15 +448,13 @@ int db_create_task(const char *name, int done, int left, size_t tag_id, Date_Ran
 
     static char sql_cmd[SQLCMD_STR_INSERT_CAP] = {0};
 
-    printf("%ld\n", tag_id);
-    snprintf(
-        sql_cmd, SQLCMD_STR_INSERT_CAP,
-        "INSERT INTO task "
-        "(name,date_created,done,left,tag_id,date_from,date_to) VALUES ('%s',datetime('now'),%d,%d,%ld,date('%d-%02d-%02d'),"
-        "date('%d-%02d-%02d'))",
-        name, done, left, tag_id, range->from.year, range->from.month, range->from.day, range->to.year, range->to.month,
-        range->to.day);
-    printf("%s\n", sql_cmd);
+    snprintf(sql_cmd, SQLCMD_STR_INSERT_CAP,
+             "INSERT INTO task "
+             "(name,date_created,done,left,tag_id,date_from,date_to) VALUES "
+             "('%s',datetime('now'),%d,%d,%ld,date('%d-%02d-%02d'),"
+             "date('%d-%02d-%02d'))",
+             name, done, left, tag_id, range->from.year, range->from.month, range->from.day, range->to.year,
+             range->to.month, range->to.day);
 
     db_exec_cmd(sql_cmd, 0, 0);
     int id = sqlite3_last_insert_rowid(g_db);
