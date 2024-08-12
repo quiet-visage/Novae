@@ -82,19 +82,17 @@ static void draw_begin_and_end_rings(Date_Pick* m, Vector2 pos, Date now, float 
 
     Color col0 = GET_RCOLOR(COLOR_GREEN);
     Color col1 = GET_RCOLOR(COLOR_BLUE);
-    col0.a=alpha_inherit_get_alpha();
-    col1.a=alpha_inherit_get_alpha();
+    col0.a = alpha_inherit_get_alpha();
+    col1.a = alpha_inherit_get_alpha();
 
     if (is_range_begin) {
-        DrawRing(c, g_calendar_style->typo.size, g_calendar_style->typo.size * 1.25, 0., 360., 32.,
-                 col0);
+        DrawRing(c, g_calendar_style->typo.size, g_calendar_style->typo.size * 1.25, 0., 360., 32., col0);
     }
     // TODO maybe underline from beginning to end with gradient
 
     bool is_range_end = !loop_to_cmp;
     if (is_range_end) {
-        DrawRing(c, g_calendar_style->typo.size, g_calendar_style->typo.size * 1.25, 0., 360., 32.,
-                 col1);
+        DrawRing(c, g_calendar_style->typo.size, g_calendar_style->typo.size * 1.25, 0., 360., 32., col1);
     }
 }
 
