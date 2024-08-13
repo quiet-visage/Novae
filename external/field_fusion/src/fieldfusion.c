@@ -22,7 +22,7 @@ __FF_EMBED_FILE(g_font_fragment, ff_shaders/ff_font.frag);
 __FF_EMBED_FILE(g_font_geometry, ff_shaders/ff_font.geo);
 __FF_EMBED_FILE(g_msdf_vertex, ff_shaders/ff_msdf.vert);
 __FF_EMBED_FILE(g_msdf_fragment, ff_shaders/ff_msdf.frag);
-__FF_EMBED_FILE(g_default_font, ff_fonts/SourceCodePro-Regular.ttf);
+__FF_EMBED_FILE(g_default_font, ff_fonts/MPLUS1p-Medium.ttf);
 // clang-format on
 
 typedef enum { Endian_LE, Endian_BE } Endian;
@@ -330,6 +330,7 @@ FF_Style ff_style_create(void) {
     result.typo.color = 0xffffffff;
     result.attributes = ff_get_default_attributes();
     result.flags = FF_FLAG_DEFAULT;
+    result.new_line_vertical_spacing = 0;
     return result;
 }
 
@@ -907,6 +908,7 @@ FF_Dimensions ff_print_utf32(FF_Glyph *glyphs, size_t *out_len,
                              const C32 *str, size_t str_len, float x,
                              float y, FF_Style style) {
     FF_Dimensions result = {0};
+    float tmp_width = 0.;
     FF_Font_Texture_Pack *fpack =
         fpack_map_get(&g_fonts, style.typo.font);
     float pos0_x = x;
@@ -946,7 +948,10 @@ FF_Dimensions ff_print_utf32(FF_Glyph *glyphs, size_t *out_len,
 
         bool is_space = codepoint == L' ';
         bool is_tab = codepoint == L'\t';
-        if (!is_space && !is_tab) {
+        bool handle_newline =
+            style.flags & FF_FLAG_HANDLE_NEW_LINES &&
+            codepoint == '\n';
+        if (!is_space && !is_tab && !handle_newline) {
             FF_Glyph *new_glyph = &glyphs[i];
             new_glyph->position.x = pos0_x;
             new_glyph->position.y = pos0_y;
@@ -970,10 +975,22 @@ FF_Dimensions ff_print_utf32(FF_Glyph *glyphs, size_t *out_len,
             result.width = fmaxf(result.width, x_adv);
         } else {
             pos0_x += x_adv;
-            result.width += x_adv;
-            result.height = fmaxf(result.height, x_adv);
+            tmp_width += x_adv;
+            if (style.flags & FF_FLAG_HANDLE_NEW_LINES &&
+                codepoint == '\n') {
+                pos0_y +=
+                    style.typo.size + style.new_line_vertical_spacing;
+                pos0_x = x;
+                result.height +=
+                    style.typo.size + style.new_line_vertical_spacing;
+                result.width = fmaxf(tmp_width, result.width);
+                tmp_width = 0.;
+            } else {
+                result.height = fmaxf(result.height, y_adv);
+            }
         }
     }
+    result.width = fmaxf(tmp_width, result.width);
 
     if (out_len) *out_len += str_len;
     return result;
@@ -1002,6 +1019,7 @@ static FF_Dimensions ff_measure(const C32 *str, size_t str_len,
     FF_Font_Texture_Pack *fpack =
         fpack_map_get(&g_fonts, style.typo.font);
     FF_Dimensions result = {0};
+    float tmp_width = 0.;
 
     for (size_t i = 0; i < str_len; i++) {
         C32 codepoint = str[i];
@@ -1029,32 +1047,56 @@ static FF_Dimensions ff_measure(const C32 *str, size_t str_len,
                 FT_KERNING_UNSCALED, &kerning);
         }
 
-        float height = (idx->advance[1] + kerning.y) *
-                       (style.typo.size * g_dpi[1] / 72.0f) /
-                       fpack->font.face->units_per_EM;
-        result.height = fmax(result.height, height);
+        float y_adv = (idx->advance[1] + kerning.y) *
+                      (style.typo.size * g_dpi[0] / 72.0f) /
+                      fpack->font.face->units_per_EM;
         float x_adv = (idx->advance[0] + kerning.x) *
                       (style.typo.size * g_dpi[0] / 72.0f) /
                       fpack->font.face->units_per_EM;
-        if (codepoint == L'\t') x_adv *= 4;
-        result.width += x_adv;
+
+        if (style.flags & FF_FLAG_PRINT_VERTICALLY) {
+            result.height += y_adv;
+            result.width = fmaxf(result.width, x_adv);
+        } else {
+            if (codepoint == L'\t')
+                x_adv *= 4;
+            else
+                tmp_width += x_adv;
+
+            if (style.flags & FF_FLAG_HANDLE_NEW_LINES &&
+                codepoint == '\n') {
+                result.height +=
+                    style.typo.size + style.new_line_vertical_spacing;
+                result.width = fmaxf(tmp_width, result.width);
+                tmp_width = 0.;
+            } else {
+                result.height = fmaxf(result.height, y_adv);
+            }
+        }
     }
+    result.width = fmaxf(tmp_width, result.width);
 
     return result;
 }
 
-void ff_draw_str32(const C32 *str, size_t len, float x, float y,
-                   float *projection, FF_Style style) {
+FF_Dimensions ff_draw_str32(const C32 *str, size_t len, float x,
+                            float y, float *projection,
+                            FF_Style style) {
     FF_Glyph glyphs[len];
-    ff_print_utf32(glyphs, 0, str, len, x, y, style);
+    FF_Dimensions result =
+        ff_print_utf32(glyphs, 0, str, len, x, y, style);
     ff_draw(glyphs, len, projection, style);
+    return result;
 }
 
-void ff_draw_str8(const char *str, size_t len, float x, float y,
-                  float *projection, FF_Style style) {
+FF_Dimensions ff_draw_str8(const char *str, size_t len, float x,
+                           float y, float *projection,
+                           FF_Style style) {
     FF_Glyph glyphs[len];
-    ff_print_utf8(glyphs, 0, str, len, x, y, style);
+    FF_Dimensions result =
+        ff_print_utf8(glyphs, 0, str, len, x, y, style);
     ff_draw(glyphs, len, projection, style);
+    return result;
 }
 
 FF_Dimensions ff_measure_utf32(const C32 *str, size_t str_len,
@@ -1076,22 +1118,22 @@ void ff_set_glyphs_pos(FF_Glyph *glyphs, size_t count, float x,
     float advances_x[count];
     float advances_y[count];
     float prev_adv_x = glyphs[0].position.x;
-    // float prev_adv_y = glyphs[0].position.y;
+    float prev_adv_y = glyphs[0].position.y;
 
     for (size_t i = 0; i < count; i += 1) {
         float tmp_prev_x = glyphs[i].position.x;
-        // float tmp_prev_y = glyphs[i].position.y;
+        float tmp_prev_y = glyphs[i].position.y;
         advances_x[i] = glyphs[i].position.x - prev_adv_x;
-        // advances_y[i] = glyphs[i].position.y - prev_adv_y;
+        advances_y[i] = glyphs[i].position.y - prev_adv_y;
         prev_adv_x = tmp_prev_x;
-        // prev_adv_y = tmp_prev_y;
+        prev_adv_y = tmp_prev_y;
     }
 
     float prev_x = x;
     for (size_t i = 0; i < count; i += 1) {
-        // float corrected_y = glyphs[i].size + y;
+        float corrected_y = glyphs[i].size + y;
         glyphs[i].position.x = prev_x + advances_x[i];
-        glyphs[i].position.y = glyphs[i].size+y;
+        glyphs[i].position.y = corrected_y + advances_y[i];
         prev_x = glyphs[i].position.x;
     }
 }
