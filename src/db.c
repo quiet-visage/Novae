@@ -112,6 +112,9 @@ typedef enum {
     LOAD_TASK_VAL_FIELD_DATE_CREATED,
     LOAD_TASK_VAL_FIELD_DATE_FROM,
     LOAD_TASK_VAL_FIELD_DATE_TO,
+    LOAD_TASK_VAL_FIELD_DILIGENCE,
+    LOAD_TASK_VAL_FIELD_IDLE,
+    LOAD_TASK_VAL_FIELD_REST,
 } Load_Task_Val_Field;
 
 typedef enum {
@@ -527,6 +530,9 @@ static int db_load_todays_task_cb(void *task_ptr_arg, int len, char **vals, char
     task->date_created = sql_date_str_to_date(vals[LOAD_TASK_VAL_FIELD_DATE_CREATED]);
     task->date_range.from = sql_date_str_to_date(vals[LOAD_TASK_VAL_FIELD_DATE_FROM]);
     task->date_range.to = sql_date_str_to_date(vals[LOAD_TASK_VAL_FIELD_DATE_TO]);
+    task->diligence = strtof(vals[LOAD_TASK_VAL_FIELD_DILIGENCE],0);
+    task->idle= strtof(vals[LOAD_TASK_VAL_FIELD_IDLE],0);
+    task->rest= strtof(vals[LOAD_TASK_VAL_FIELD_REST],0);
 
     *task_pp += 1;
     return 0;
@@ -534,7 +540,7 @@ static int db_load_todays_task_cb(void *task_ptr_arg, int len, char **vals, char
 
 void db_get_todays_task(Task *out) {
     db_exec_cmd(
-        "SELECT task_id, name, done, left, date_completed, tag_id, date_created, date_from, date_to FROM task "
+        "SELECT task_id, name, done, left, date_completed, tag_id, date_created, date_from, date_to, diligence, idle, rest FROM task "
         "WHERE "
         "date_created >= "
         "date('now');",

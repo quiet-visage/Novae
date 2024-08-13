@@ -42,11 +42,6 @@ static void tag_vec_prealloc(Tag_Vec* m, size_t elem_count) {
     }
 }
 
-// static void tag_vec_push(Tag_Vec* m, Tag tag) {
-//     tag_vec_prealloc(m, 1);
-//     m->data[m->len++] = tag;
-// }
-
 static Tag* tag_vec_find(Tag_Vec* m, int id) {
     for (size_t i = 0; i < m->len; i += 1) {
         if (m->data[i].id == id) return &m->data[i];

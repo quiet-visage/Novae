@@ -131,6 +131,7 @@ void main_init() {
 };
 
 void main_terminate() {
+    db_batch_flush();
     date_pick_destroy(&g_date_pick);
     db_cache_terminate();
     db_terminate();
@@ -178,11 +179,17 @@ static void add_task() {
 }
 
 static void synchronize_task_time_spent(Task *priority_task, PTimer_Return timing_comp_ret) {
-    if (!timing_comp_ret.spent_delta) db_batch_incr_time(priority_task->db_id, GetFrameTime(), INCR_TIME_SPENT_IDLE);
-    if (g_timing_comp.pomo == PTIMER_PSTATE_FOCUS)
+    float delta = GetFrameTime();
+    if (!timing_comp_ret.spent_delta) {
+        priority_task->idle+= delta;
+        db_batch_incr_time(priority_task->db_id, delta, INCR_TIME_SPENT_IDLE);
+    } else if (g_timing_comp.pomo == PTIMER_PSTATE_FOCUS) {
+        priority_task->diligence += timing_comp_ret.spent_delta;
         db_batch_incr_time(priority_task->db_id, timing_comp_ret.spent_delta, INCR_TIME_SPENT_FOCUS);
-    if (g_timing_comp.pomo == PTIMER_PSTATE_REST)
+    } else if (g_timing_comp.pomo == PTIMER_PSTATE_REST) {
+        priority_task->rest += timing_comp_ret.spent_delta;
         db_batch_incr_time(priority_task->db_id, timing_comp_ret.spent_delta, INCR_TIME_SPENT_REST);
+    }
 }
 
 static void handle_tag_selection(float x, float y) {

@@ -16,7 +16,7 @@ typedef struct {
     Rectangle bg;
     float indicator_m_x;
     float alpha;
-    float text_width;
+    FF_Dimensions text_size;
     float time_hovering;
     char desc[1024];
     size_t desc_len;
@@ -69,11 +69,11 @@ void hint_view(const char* desc, Rectangle bounds) {
     motion_update_x(&instance->motion, target_alpha, GetFrameTime());
     instance->alpha = instance->motion.position[0];
     if (instance->alpha < .1) return;
-    instance->text_width = ff_measure_utf8(desc, strlen(desc), *g_style).width;
+    instance->text_size = ff_measure_utf8(desc, strlen(desc), *g_style);
 
-    instance->bg.height = g_style->typo.size + g_cfg.inner_gap2;
+    instance->bg.height = instance->text_size.height + g_cfg.inner_gap2;
     instance->bg.y = bounds.y - instance->bg.height - g_cfg.inner_gap;
-    instance->bg.width = MAX(instance->text_width + g_cfg.inner_gap2, hint_min_width());
+    instance->bg.width = MAX(instance->text_size.width + g_cfg.inner_gap2, hint_min_width());
     instance->bg.x = bounds.x + bounds.width * .5 - instance->bg.width * .5;
     Color color = GET_RCOLOR(COLOR_SURFACE1);
     color.a = instance->alpha;
@@ -102,10 +102,10 @@ void hint_end_frame(void) {
 
         FF_Style style = *g_style;
         style.typo.color &= ~0xff;
-        style.typo.color |= (int)(instance->alpha);
+        style.typo.color |= (int)instance->alpha;
         ff_draw_str8(instance->desc, instance->desc_len,
-                     instance->bg.x + instance->bg.width * .5 - instance->text_width * .5,
-                     instance->bg.y + instance->bg.height * .5 - g_style->typo.size * .5,
+                     instance->bg.x + instance->bg.width * .5 - instance->text_size.width * .5,
+                     instance->bg.y + instance->bg.height * .5 - instance->text_size.height * .5,
                      (float*)g_cfg.global_projection, style);
     }
     g_instances_len = 0;
