@@ -15,3 +15,5 @@ Tag* db_cache_get_default_tag(void);
 void db_cache_sync_tags(void);
 Tag* db_cache_get_tag_array(void);
 size_t db_cache_get_tag_array_len(void);
+size_t db_cache_get_future_tasks_len(void);
+Task* db_cache_get_future_tasks_array(void);

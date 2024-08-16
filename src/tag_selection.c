@@ -21,7 +21,7 @@
 #include "motion.h"
 #include "tag.h"
 
-#define OPEN_VIEW_X_RATIO .5f
+#define OPEN_VIEW_X_RATIO .35f
 #define HUE_RAD 64.f
 #define HUE_RING_W 12.f
 #define SAT_RAD (HUE_RAD - HUE_RING_W - 5.f)
@@ -338,7 +338,9 @@ static void draw_tags(Tag_Selection* m, Tag* tags, size_t tags_len, float x, flo
         }
         Rectangle bounds = tag_draw(&tag, tag_x, tag_y, 0);
         if (m->selected == i) {
-            DrawRectangleRoundedLines(bounds, 0x100, g_cfg.rounded_rec_segments, 2.f, GET_RCOLOR(COLOR_TEAL));
+            Color color = GET_RCOLOR(COLOR_TEAL);
+            color.a = alpha_inherit_get_alpha();
+            DrawRectangleRoundedLines(bounds, 0x100, g_cfg.rounded_rec_segments, 2.f, color);
         }
 
         if (is_mouse_pressed && CheckCollisionPointRec(mouse_pos, bounds)) {

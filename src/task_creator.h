@@ -25,6 +25,8 @@ typedef struct {
     bool create;
     float tag_sel_x;
     float tag_sel_y;
+    float cal_sel_x;
+    float cal_sel_y;
 } Task_Creator_Ret;
 
 Task_Creator task_creator_create();

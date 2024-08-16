@@ -8,6 +8,7 @@
 #include "config.h"
 #include "db_cache.h"
 #include "fieldfusion.h"
+#include "hint.h"
 #include "icon.h"
 #include "motion.h"
 #include "swipe_btn.h"
@@ -155,6 +156,33 @@ static bool draw_up_btn(Task* m, Rectangle bg, Rectangle bounds, bool enabled) {
     return result;
 }
 
+static char* human_format_seconds(int seconds) {
+#define init_result_cap 2048
+    static char result[init_result_cap] = {0};
+    memset(result, 0, sizeof(result));
+    size_t result_cap = init_result_cap - 1;
+
+    int hours = seconds / 3600;
+    int mins = seconds / 60 % 60;
+    int secs = seconds % 60;
+
+    char* write_ptr = result;
+
+    if (hours) {
+        size_t cap_dec = snprintf(write_ptr, result_cap, "%d hours, ", hours);
+        write_ptr += cap_dec;
+        result_cap -= cap_dec;
+    }
+
+    if (mins) {
+        size_t cap_dec = snprintf(write_ptr, result_cap, "%d minutes, ", mins);
+        write_ptr += cap_dec;
+        result_cap -= cap_dec;
+    }
+    snprintf(write_ptr, result_cap, "%d seconds", secs);
+    return result;
+}
+
 Task_Return task_draw(Task* m, float x, float y, float max_width, Rectangle bounds, bool enabled) {
     Task_Return result = {0};
     Rectangle bg = {.x = x, .y = y, .width = max_width, .height = task_height()};
@@ -169,6 +197,17 @@ Task_Return task_draw(Task* m, float x, float y, float max_width, Rectangle boun
     float name_w = ff_measure_utf32(m->name, m->name_len, *g_style).width;
     float name_y = bg.y + g_cfg.inner_gap;
     float name_x = CENTER(bg.x, bg.width, name_w);
+
+    {
+        Rectangle title_bounds = {name_x, name_y, name_w, g_style->typo.size};
+        char hint_str[1024] = {0};
+        size_t hint_cap = 1023;
+
+        snprintf(hint_str, hint_cap, "Details:\nTime spent working: %s\nTime spent resting: %s\nTime spent idle: %s",
+                 human_format_seconds(m->diligence), human_format_seconds(m->rest), human_format_seconds(m->idle));
+        hint_view(hint_str, title_bounds);
+    }
+
     ff_draw_str32(m->name, m->name_len, name_x, name_y, (float*)g_cfg.global_projection, *g_style);
 
     Rectangle bar_rec = {0};

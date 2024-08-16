@@ -35,7 +35,6 @@ TODO: on slide button choide fade in the text
 #include "scr_space.h"
 #include "sdf_draw.h"
 #include "shader.h"
-#include "std_dev.h"
 #include "streak.h"
 #include "tag_selection.h"
 #include "task.h"
@@ -132,6 +131,7 @@ void main_init() {
 };
 
 void main_terminate() {
+    db_batch_flush();
     date_pick_destroy(&g_date_pick);
     db_cache_terminate();
     db_terminate();
@@ -171,19 +171,25 @@ static void add_task() {
     char task_name[g_new_task.name_len + 1];
     task_name[g_new_task.name_len] = 0;
     ff_utf32_to_utf8(task_name, g_new_task.name, g_new_task.name_len);
-    g_new_task.db_id =
-        db_create_task(task_name, g_new_task.done, g_new_task.left, tag_selection_get_selected(&g_tag_selection)->id);
+    g_new_task.db_id = db_create_task(task_name, g_new_task.done, g_new_task.left,
+                                      tag_selection_get_selected(&g_tag_selection)->id, &g_new_task.date_range);
     g_new_task.tag_id = tag_selection_get_selected(&g_tag_selection)->id;
     task_list_push(&g_task_list, g_new_task);
     g_new_task = task_create();
 }
 
 static void synchronize_task_time_spent(Task *priority_task, PTimer_Return timing_comp_ret) {
-    if (!timing_comp_ret.spent_delta) db_batch_incr_time(priority_task->db_id, GetFrameTime(), INCR_TIME_SPENT_IDLE);
-    if (g_timing_comp.pomo == PTIMER_PSTATE_FOCUS)
+    float delta = GetFrameTime();
+    if (!timing_comp_ret.spent_delta) {
+        priority_task->idle+= delta;
+        db_batch_incr_time(priority_task->db_id, delta, INCR_TIME_SPENT_IDLE);
+    } else if (g_timing_comp.pomo == PTIMER_PSTATE_FOCUS) {
+        priority_task->diligence += timing_comp_ret.spent_delta;
         db_batch_incr_time(priority_task->db_id, timing_comp_ret.spent_delta, INCR_TIME_SPENT_FOCUS);
-    if (g_timing_comp.pomo == PTIMER_PSTATE_REST)
+    } else if (g_timing_comp.pomo == PTIMER_PSTATE_REST) {
+        priority_task->rest += timing_comp_ret.spent_delta;
         db_batch_incr_time(priority_task->db_id, timing_comp_ret.spent_delta, INCR_TIME_SPENT_REST);
+    }
 }
 
 static void handle_tag_selection(float x, float y) {
@@ -199,12 +205,17 @@ static void handle_tag_selection(float x, float y) {
 static void handle_calendar_pick(float x, float y) {
     bool is_open = g_date_pick.state == DATE_PICK_STATE_OPEN;
     if (is_open) g_focus = FOCUS_STATE_CALENDAR_PICK;
-    Date_Range *result = date_pick_view(&g_date_pick, 100, 100, 1, is_open);
+    static Date_Range chosen_range = {0};
+    Date_Range *result = date_pick_view(&g_date_pick, (Vector2){x, y}, 1, is_open);
 
     if (result) {
         g_focus = FOCUS_STATE_TASK_CREATOR;
         if (result != (Date_Range *)-1) {
-            // TODO
+            chosen_range = *result;
+            g_new_task.date_range = chosen_range;
+        } else {
+            chosen_range = (Date_Range){0};
+            g_new_task.date_range = chosen_range;
         }
     }
 }
@@ -287,7 +298,7 @@ void main_loop() {
         heatmap_draw(heatmap_x, date_time_y + date_time_height() + g_cfg.inner_gap);
 
         handle_tag_selection(task_creator_ret.tag_sel_x, task_creator_ret.tag_sel_y);
-        handle_calendar_pick(100, 100);
+        handle_calendar_pick(task_creator_ret.cal_sel_x, task_creator_ret.cal_sel_y);
 
         hint_end_frame();
         end_frame();

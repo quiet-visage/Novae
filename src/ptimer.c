@@ -177,9 +177,9 @@ PTimer_Return ptimer_draw(PTimer *m, float cx, float cy, float max_width) {
     float lbtnx = cx - BTN_ICON_RADIUS - g_cfg.inner_gap * .5;
     Icon toggle_play_icon =
         m->state == PTIMER_STATE_PAUSED || m->state == PTIMER_STATE_FINISHED ? ICON_PLAY : ICON_PAUSE;
-    bool toggle_play = btn_draw_icon(&m->interrupt, toggle_play_icon, lbtnx, by);
+    bool toggle_play = btn_draw_icon_only(&m->interrupt, toggle_play_icon, (Vector2){lbtnx, by}, BTN_ICON_RADIUS);
     float rbtnx = cx + BTN_ICON_RADIUS + g_cfg.inner_gap * .5;
-    bool skip = btn_draw_icon(&m->skip, ICON_SKIP, rbtnx, by);
+    bool skip = btn_draw_icon_only(&m->skip, ICON_SKIP, (Vector2){rbtnx, by}, BTN_ICON_RADIUS);
 
     if (toggle_play) {
         switch (m->state) {

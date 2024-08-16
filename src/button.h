@@ -25,4 +25,4 @@ void btn_set_label(Btn* m, const char* str);
 float btn_width(Btn* m);
 float btn_height(Btn* m);
 void btn_destroy(Btn* m);
-bool btn_draw_icon(Btn* m, Icon icon, float cx, float cy);
+bool btn_draw_icon_only(Btn* m, Icon icon, Vector2 cpos, float radius);

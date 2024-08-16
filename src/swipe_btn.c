@@ -8,6 +8,7 @@
 #include "config.h"
 #include "fieldfusion.h"
 #include "motion.h"
+#include "tag.h"
 
 #define BUTTON_RADIUS 10.
 #define INITIAL_RADIUS 115.
@@ -38,21 +39,30 @@ static void draw_text(float x, float y, const char* text, int alpha) {
     ff_draw_str8(text, len, new_x, y, (float*)g_cfg.global_projection, style);
 }
 
+static inline void update_anim_targets(bool left_hover, bool right_hover, float text_targets[2],
+                                       float motion_targets[2]) {
+    text_targets[0] = left_hover;
+    text_targets[1] = right_hover;
+    if (left_hover) motion_targets[0] = EXPANDED_RADIUS;
+    if (right_hover) motion_targets[1] = EXPANDED_RADIUS;
+}
+
 int swipe_btn_view(Swipe_Btn* m, float x, float y, Icon icon_left, Icon icon_right, const char* text_left,
                    const char* text_right, bool enabled) {
     int result = 0;
-    Vector2 mp = GetMousePosition();
-    bool clicked =
-        enabled && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointCircle(mp, (Vector2){x, y}, BUTTON_RADIUS);
+    Vector2 mouse = GetMousePosition();
+    float button_radius = tag_height() * .5;
+    bool clicked = enabled && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+                   CheckCollisionPointCircle(mouse, (Vector2){x, y}, button_radius);
     m->expand = m->expand || clicked;
     float motion_target[] = {INITIAL_RADIUS, INITIAL_RADIUS};
+
     if (m->expand && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        bool dir_right = mp.x > x + BUTTON_RADIUS;
-        bool dir_left = mp.x < x - BUTTON_RADIUS;
-        float text_target[2] = {dir_left, dir_right};
+        bool right_hover = mouse.x > x + button_radius;
+        bool left_hover = mouse.x < x - button_radius;
+        float text_target[2] = {0};
+        update_anim_targets(left_hover, right_hover, text_target, motion_target);
         motion_update(&m->text_motion, text_target, GetFrameTime());
-        if (dir_left) motion_target[0] = EXPANDED_RADIUS;
-        if (dir_right) motion_target[1] = EXPANDED_RADIUS;
 
         Color grad_color = GET_RCOLOR(COLOR_CRUST);
         float radius_left = m->bg_motion.position[0];
@@ -68,17 +78,17 @@ int swipe_btn_view(Swipe_Btn* m, float x, float y, Icon icon_left, Icon icon_rig
         Color icon_color = GET_RCOLOR(COLOR_RED);
         icon_color.a = 0xff * left_alpha_perc;
 
+        const float sides_icon_size = BTN_ICON_SIZE * 2.;
         Texture left_tex = icon_get(icon_left);
         Rectangle src = {0, 0, left_tex.width, left_tex.height};
-        Rectangle dest = {x - BUTTON_RADIUS * 5 - BTN_ICON_SIZE * .5, y - BTN_ICON_SIZE * .5, BTN_ICON_SIZE,
-                          BTN_ICON_SIZE};
+        float icon_offset = button_radius * 5. + sides_icon_size * .5;
+        Rectangle dest = {x - icon_offset - sides_icon_size * .5, y - sides_icon_size * .5, sides_icon_size,
+                          sides_icon_size};
         Vector2 orig = {0};
-        DrawCircle(dest.x + BTN_ICON_SIZE * .5, dest.y + BTN_ICON_SIZE * .5, BUTTON_RADIUS, GET_RCOLOR(COLOR_SURFACE0));
-        DrawCircleLines(dest.x + BTN_ICON_SIZE * .5, dest.y + BTN_ICON_SIZE * .5, BUTTON_RADIUS, icon_color);
         DrawTexturePro(left_tex, src, dest, orig, 0, icon_color);
 
         if (text_left) {
-            float text_x = dest.x;
+            float text_x = x - icon_offset;
             float text_y = dest.y - g_cfg.estyle.typo.size - g_cfg.inner_gap;
             draw_text(text_x, text_y, text_left, 0xff * m->text_motion.position[0]);
         }
@@ -88,28 +98,25 @@ int swipe_btn_view(Swipe_Btn* m, float x, float y, Icon icon_left, Icon icon_rig
         icon_color.a = 0xff * right_alpha_perc;
 
         Texture right_tex = icon_get(icon_right);
-        dest.x = x + BUTTON_RADIUS * 5.0 - BTN_ICON_SIZE * .5;
+        dest.x = x + icon_offset - sides_icon_size * .5;
 
         if (text_right) {
-            float text_x = dest.x;
             float text_y = dest.y - g_cfg.estyle.typo.size - g_cfg.inner_gap;
-            draw_text(text_x, text_y, text_right, 0xff * m->text_motion.position[1]);
+            draw_text(x + icon_offset, text_y, text_right, 0xff * m->text_motion.position[1]);
         }
 
-        DrawCircle(dest.x + BTN_ICON_SIZE * .5, dest.y + BTN_ICON_SIZE * .5, BUTTON_RADIUS, GET_RCOLOR(COLOR_SURFACE0));
-        DrawCircleLines(dest.x + BTN_ICON_SIZE * .5, dest.y + BTN_ICON_SIZE * .5, BUTTON_RADIUS, icon_color);
         DrawTexturePro(right_tex, src, dest, orig, 0, icon_color);
     } else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && m->expand) {
-        bool dir_right = mp.x > x + BUTTON_RADIUS;
-        bool dir_left = mp.x < x - BUTTON_RADIUS;
-        if (dir_right) result = 1;
-        if (dir_left) result = -1;
+        bool rigth_hover = mouse.x > x + button_radius;
+        bool left_hover = mouse.x < x - button_radius;
+        if (rigth_hover) result = 1;
+        if (left_hover) result = -1;
         m->expand = false;
     } else {
         m->expand = false;
     }
 
-    DrawCircle(x, y, BUTTON_RADIUS * 1.25, GET_RCOLOR(COLOR_SURFACE1));
+    DrawCircle(x, y, button_radius, GET_RCOLOR(COLOR_SURFACE1));
     Texture cancel_icon = icon_get(ICON_SWIPE);
     Rectangle src = {0, 0, cancel_icon.width, cancel_icon.height};
     Rectangle dest = {x - BTN_ICON_SIZE * .5, y - BTN_ICON_SIZE * .5, BTN_ICON_SIZE, BTN_ICON_SIZE};

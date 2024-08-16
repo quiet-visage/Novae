@@ -27,7 +27,10 @@ const char* g_icon_paths[] = {
     [ICON_SKIP] = ICON_PATH("skip.svg"),
     [ICON_CALENDAR_EDIT] = ICON_PATH("calendar_edit.svg"),
     [ICON_CALENDAR_RANGE] = ICON_PATH("calendar_range.svg"),
+    [ICON_NEXT] = ICON_PATH("next.svg"),
+    [ICON_PREV] = ICON_PATH("prev.svg"),
 };
+
 Texture g_icons[ICON_COUNT] = {0};
 static_assert(sizeof(g_icon_paths) / sizeof(*g_icon_paths) == ICON_COUNT && "Icon paths need to be updated");
 

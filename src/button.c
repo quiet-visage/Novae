@@ -57,8 +57,8 @@ bool btn_draw(Btn *m, float x, float y) {
     bool hovering = CheckCollisionPointRec(GetMousePosition(), bounds);
     bool act = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     bool result = hovering && act ? true : false;
-
     bool draw_bg = !(m->flags & BTN_FLAG_DONT_DRAW_BG);
+
     if (draw_bg) {
         float target[2] = {0, 0};
         if (hovering) {
@@ -84,14 +84,15 @@ bool btn_draw(Btn *m, float x, float y) {
     return result;
 }
 
-bool btn_draw_icon(Btn *m, Icon icon, float cx, float cy) {
+bool btn_draw_icon_only(Btn *m, Icon icon, Vector2 cpos, float radius) {
     static const float border = 3.;
 
-    float bg_radius = BTN_ICON_SIZE * 1.75;
+    float icon_size = radius * .75;  // TODO
+    float bg_radius = radius;
     bool result = 0;
 
     Vector2 mouse = GetMousePosition();
-    Vector2 center = {cx, cy};
+    Vector2 center = cpos;
     bool hovering = CheckCollisionPointCircle(mouse, center, bg_radius);
 
     float anim_target[2] = {0};
@@ -101,14 +102,20 @@ bool btn_draw_icon(Btn *m, Icon icon, float cx, float cy) {
     }
     motion_update(&m->motion, anim_target, GetFrameTime());
 
-    DrawCircle(cx, cy, bg_radius + m->motion.position[0], GET_RCOLOR(COLOR_TEAL));
-    DrawCircle(cx, cy, bg_radius + border - m->motion.position[0], GET_RCOLOR(COLOR_SURFACE0));
-    DrawCircle(cx, cy, bg_radius, GET_RCOLOR(COLOR_BASE));
+    Color col0 = GET_RCOLOR(COLOR_BASE);
+    Color col1 = GET_RCOLOR(COLOR_TEAL);
+    Color col2 = GET_RCOLOR(COLOR_SURFACE0);
+    col0.a = alpha_inherit_get_alpha();
+    col1.a = alpha_inherit_get_alpha();
+    col2.a = alpha_inherit_get_alpha();
+    DrawCircleV(cpos, bg_radius + m->motion.position[0], col1);
+    DrawCircleV(cpos, bg_radius + border - m->motion.position[0], col2);
+    DrawCircleV(cpos, bg_radius, col0);
 
     Vector2 icon_origin = {0};
     Texture icon_tex = icon_get(icon);
     Rectangle icon_src = {0, 0, icon_tex.width, icon_tex.width};
-    Rectangle icon_dst = {cx - BTN_ICON_SIZE * .5, cy - BTN_ICON_SIZE * .5, BTN_ICON_SIZE + 4.f, BTN_ICON_SIZE + 4.f};
+    Rectangle icon_dst = {cpos.x - icon_size * .5, cpos.y - icon_size * .5, icon_size, icon_size};
     Color icon_col = GET_RCOLOR(COLOR_SKY);
     icon_col.a = alpha_inherit_get_alpha();
     DrawTexturePro(icon_tex, icon_src, icon_dst, icon_origin, 0, icon_col);

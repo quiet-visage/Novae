@@ -89,6 +89,16 @@ static void auto_correct_buffer_date(Date_Edit* m, C32_Vec* buf) {
     buf_date.year = year_digits < 4 ? rest + buf_date.year : buf_date.year;
 
     m->input_date = buf_date;
+
+    // if (m->min_date.year) {
+    //     size_t con_min = m->min_date.day * m->min_date.month * m->min_date.year;
+    //     size_t con = m->input_date.day * m->input_date.month * m->input_date.year;
+    //     bool lesseq = con_min > con;
+    //     if (lesseq) {
+    //         m->input_date = m->min_date;
+    //     }
+    // }
+
     date_edit_sync_date_and_buf(m, buf);
 }
 
@@ -276,30 +286,32 @@ static float get_cursor_x(const C32* buf, size_t len, size_t cursor_pos, float x
     return x + cursor_offset;
 }
 
-bool date_edit_view(Date_Edit* m, C32_Vec* buf, float x, float y, bool focused) {
+float date_edit_width(C32_Vec* buf) { return ff_measure_utf32(buf->data, buf->len, *g_style).width; }
+inline float date_edit_height(void) {return g_style->typo.size;}
+
+bool date_edit_view(Date_Edit* m, C32_Vec* buf, Vector2 pos, bool focused) {
     if (focused) {
         cursor_set_focused(&m->cursor_view, 1);
         handle_input(m, buf);
+        if (IsKeyPressed(KEY_TAB)) {
+            select_next_placement(m, buf);
+        }
     } else {
         cursor_set_focused(&m->cursor_view, 0);
     }
 
-    if (IsKeyPressed(KEY_TAB)) {
-        select_next_placement(m, buf);
-    }
-
-    view_selection(m, buf, x, y);
+    view_selection(m, buf, pos.x, pos.y);
 
     FF_Style style = *g_style;
     style.typo.color &= ~0xff;
     style.typo.color |= alpha_inherit_get_alpha();
-    ff_draw_str32(buf->data, buf->len, x, y, (float*)(g_cfg.global_projection), style);
+    ff_draw_str32(buf->data, buf->len, pos.x, pos.y, (float*)(g_cfg.global_projection), style);
 
-    float cursor_x = get_cursor_x(buf->data, buf->len, m->cursor, x);
-    float cursor_y = y + g_style->typo.size * .1;
+    float cursor_x = get_cursor_x(buf->data, buf->len, m->cursor, pos.x);
+    float cursor_y = pos.y + g_style->typo.size * .1;
     cursor_draw(&m->cursor_view, cursor_x, cursor_y);
 
-    if (IsKeyPressed(KEY_ENTER)) {
+    if (focused && IsKeyPressed(KEY_ENTER)) {
         auto_correct_buffer_date(m, buf);
         m->placement = 0;
         select_placement(m, buf);
