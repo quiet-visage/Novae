@@ -68,6 +68,10 @@ static void draw_month(float ix, float iy, int month, int year) {
     Hover_Data hover_data[recs_count];
     size_t hover_data_len = 0;
 
+    Task* future_tasks = db_cache_get_future_tasks_array();
+    size_t future_tasks_len = db_cache_get_future_tasks_len();
+    size_t future_tasks_idx = 0;
+
     for (size_t i = 0; i < recs_count; i += 1) {
         Activity* date_activity = db_cache_get_activity((Date){year, month, i});
         Color color = GET_RCOLOR(COLOR_SURFACE0);
@@ -83,8 +87,35 @@ static void draw_month(float ix, float iy, int month, int year) {
         }
 
         Vector2 point = points[i];
+
+        Date iteration_date = {year, month, i};
+
+        long iteration_date_diff = day_diffenrence(get_current_date(), iteration_date);
+        bool is_after_today = iteration_date_diff < 0;
+
+        for (; is_after_today && future_tasks_idx < future_tasks_len;) {
+            Date future_task_to = future_tasks[future_tasks_idx].date_range.to;
+            Date future_task_from = future_tasks[future_tasks_idx].date_range.from;
+
+            long to_diff = day_diffenrence(future_task_to, iteration_date);
+            bool is_after_future_task_range = to_diff < 0;
+            long from_diff = day_diffenrence(future_task_from, iteration_date);
+            bool is_before_future_task_range = from_diff > 0;
+            bool is_within_future_task_range = !is_after_future_task_range && !is_before_future_task_range;
+
+            if (is_within_future_task_range) {
+                color = GET_RCOLOR(COLOR_RED);
+                break;
+            } else if (to_diff < 0) {
+                future_tasks_idx += 1;
+            } else {
+                break;
+            }
+        }
+
         DrawPoly(point, 8, 5., 0., color);
         if (is_today(i, month, year)) DrawCircleLinesV(point, 8., GET_RCOLOR(COLOR_FLAMINGO));
+        color = GET_RCOLOR(COLOR_TEAL);
     }
 
     for (size_t i = 0; i < hover_data_len; i += 1) {

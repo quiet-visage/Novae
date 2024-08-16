@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stddef.h>
+#include <time.h>
 #define IS_LEAP_YEAR(YEAR) (!(YEAR % 4))
 
 typedef enum {
@@ -50,3 +50,4 @@ Date get_current_date(void);
 void date_incr_month(Date* m);
 void date_decr_month(Date* m);
 long day_diffenrence(Date date_end, Date date_begin);
+time_t date_to_time(Date m);

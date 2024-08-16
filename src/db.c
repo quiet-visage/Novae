@@ -105,16 +105,16 @@
 typedef enum {
     LOAD_TASK_VAL_FIELD_ID,
     LOAD_TASK_VAL_FIELD_NAME,
+    LOAD_TASK_VAL_FIELD_DATE_CREATED,
     LOAD_TASK_VAL_FIELD_DONE,
     LOAD_TASK_VAL_FIELD_LEFT,
+    LOAD_TASK_VAL_FIELD_DILIGENCE,
+    LOAD_TASK_VAL_FIELD_REST,
+    LOAD_TASK_VAL_FIELD_IDLE,
     LOAD_TASK_VAL_FIELD_DATE_COMPLETED,
     LOAD_TASK_VAL_FIELD_TAG_ID,
-    LOAD_TASK_VAL_FIELD_DATE_CREATED,
     LOAD_TASK_VAL_FIELD_DATE_FROM,
     LOAD_TASK_VAL_FIELD_DATE_TO,
-    LOAD_TASK_VAL_FIELD_DILIGENCE,
-    LOAD_TASK_VAL_FIELD_IDLE,
-    LOAD_TASK_VAL_FIELD_REST,
 } Load_Task_Val_Field;
 
 typedef enum {
@@ -285,6 +285,7 @@ static bool is_task_stage_valid(Table_Task_Info_Field stage, char **col_vals) {
                     !strcmp(col_vals[TABLE_INFO_KIND_TYPE], "DATE") &&
                     !strcmp(col_vals[TABLE_INFO_KIND_DFLTVALUE], "0"));
         } break;
+        default: return 1;
     };
     return 1;
 }
@@ -511,7 +512,7 @@ static Date sql_date_str_to_date(char *str) {
     return result;
 }
 
-static int db_load_todays_task_cb(void *task_ptr_arg, int len, char **vals, char **cols) {
+static int db_load_task_cb(void *task_ptr_arg, int len, char **vals, char **cols) {
     Task **task_pp = task_ptr_arg;
     Task *task = *task_pp;
     *task = task_create();
@@ -530,9 +531,9 @@ static int db_load_todays_task_cb(void *task_ptr_arg, int len, char **vals, char
     task->date_created = sql_date_str_to_date(vals[LOAD_TASK_VAL_FIELD_DATE_CREATED]);
     task->date_range.from = sql_date_str_to_date(vals[LOAD_TASK_VAL_FIELD_DATE_FROM]);
     task->date_range.to = sql_date_str_to_date(vals[LOAD_TASK_VAL_FIELD_DATE_TO]);
-    task->diligence = strtof(vals[LOAD_TASK_VAL_FIELD_DILIGENCE],0);
-    task->idle= strtof(vals[LOAD_TASK_VAL_FIELD_IDLE],0);
-    task->rest= strtof(vals[LOAD_TASK_VAL_FIELD_REST],0);
+    task->diligence = strtof(vals[LOAD_TASK_VAL_FIELD_DILIGENCE], 0);
+    task->idle = strtof(vals[LOAD_TASK_VAL_FIELD_IDLE], 0);
+    task->rest = strtof(vals[LOAD_TASK_VAL_FIELD_REST], 0);
 
     *task_pp += 1;
     return 0;
@@ -540,11 +541,12 @@ static int db_load_todays_task_cb(void *task_ptr_arg, int len, char **vals, char
 
 void db_get_todays_task(Task *out) {
     db_exec_cmd(
-        "SELECT task_id, name, done, left, date_completed, tag_id, date_created, date_from, date_to, diligence, idle, rest FROM task "
+        "SELECT * "
+        "FROM task "
         "WHERE "
         "date_created >= "
         "date('now');",
-        db_load_todays_task_cb, &out);
+        db_load_task_cb, &out);
 }
 
 void db_set_done(int id, int val) {
@@ -706,3 +708,15 @@ static int db_get_tags_cb(void *arg1, int len, char **vals, char **cols) {
 }
 
 void db_get_tags(Tag *out) { db_exec_cmd("SELECT * FROM Tag", db_get_tags_cb, &out); }
+
+void db_get_future_tasks(Task *out) {
+#define future_tasks_query "select * from task where unixepoch(task.date_to) > unixepoch(date('now'))"
+    db_exec_cmd(future_tasks_query, db_load_task_cb, &out);
+}
+
+size_t db_get_future_tasks_count() {
+#define count_query "select count(*) from task where unixepoch(task.date_to) > unixepoch(date('now'))"
+    size_t count = 0;
+    db_exec_cmd(count_query, db_get_count_cb, &count);
+    return count;
+}

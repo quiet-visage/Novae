@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "db.h"
+#include "task.h"
 #include "today.h"
 
 #define ACTIVITY_MAP_CAP 1024
@@ -17,6 +18,12 @@ typedef struct {
     size_t cap;
 } Tag_Vec;
 
+typedef struct {
+    Task* data;
+    size_t len;
+    size_t cap;
+} Task_Vec;
+
 Tag_Vec g_tags;
 
 Time_Activity* g_map = 0;
@@ -25,6 +32,36 @@ size_t g_map_cap = ARRAY_INIT_CAP;
 size_t g_streak = 0;
 float g_day_sync_timer = 0;
 float g_max_focus_spent = 0;
+
+Task_Vec g_future_tasks = {0};
+
+static Task_Vec task_vec_create() {
+    Task_Vec res = {0};
+    res.cap = ARRAY_INIT_CAP;
+    res.data = malloc(res.cap);
+    return res;
+}
+
+static void task_vec_prealloc(Task_Vec* m, size_t elem_count) {
+    size_t req_len = (m->len + elem_count) * sizeof(*m->data);
+    while (req_len > m->cap) {
+        m->cap *= 2;
+        m->data = realloc(m->data, m->cap);
+        assert(m->data);
+    }
+}
+
+static void task_vec_clear(Task_Vec* m) {
+    for (size_t i = 0; i < m->len; i += 1) {
+        task_destroy(&m->data[i]);
+    }
+    m->len = 0;
+}
+
+static void task_vec_destroy(Task_Vec* m) {
+    task_vec_clear(m);
+    free(m->data);
+}
 
 static Tag_Vec tag_vec_create() {
     Tag_Vec res = {0};
@@ -127,6 +164,7 @@ void db_cache_init(void) {
     }
     g_map[today_idx].date = today;
     if (!g_map_len) g_map_len += 1;
+    g_future_tasks = task_vec_create();
 }
 
 size_t db_cache_get_streak(void) { return g_streak; }
@@ -140,6 +178,12 @@ void db_cache_auto_sync(void) {
         g_day_sync_timer = TODAY_SYNC_SEC_PERIOD;
         update_max_focus();
         g_streak = db_get_streak();
+
+        size_t new_len = db_get_future_tasks_count();
+        g_future_tasks.len = 0;
+        task_vec_prealloc(&g_future_tasks, new_len);
+        db_get_future_tasks(g_future_tasks.data);
+        g_future_tasks.len = new_len;
     }
 }
 
@@ -150,6 +194,7 @@ inline Activity* db_cache_get_activity(Date key) { return map_get(key); }
 void db_cache_terminate(void) {
     map_destroy();
     tag_vec_destroy(&g_tags);
+    task_vec_destroy(&g_future_tasks);
 }
 
 size_t db_cache_get_activity_count(void) { return g_map_len; }
@@ -175,3 +220,7 @@ Tag* db_cache_get_default_tag(void) {
 Tag* db_cache_get_tag_array(void) { return g_tags.data; }
 
 size_t db_cache_get_tag_array_len(void) { return g_tags.len; }
+
+size_t db_cache_get_future_tasks_len(void) { return g_future_tasks.len; }
+
+Task* db_cache_get_future_tasks_array(void) { return g_future_tasks.data; }

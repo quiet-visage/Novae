@@ -56,3 +56,5 @@ void db_get_streak_data(Streak_Data* out);
 size_t db_get_streak(void);
 void db_batch_incr_time(int id, float delta, DB_Incr_Kind kind);
 void db_batch_flush(void);
+void db_get_future_tasks(Task*out);
+size_t db_get_future_tasks_count();
