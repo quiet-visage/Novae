@@ -136,5 +136,5 @@ long day_diffenrence(Date date_end, Date date_begin) {
     time_t time_end = date_to_time(date_end);
     time_t time_begin = date_to_time(date_begin);
     double seconds = difftime(time_end, time_begin);
-    return seconds * 86400;
+    return seconds / 86400;
 }
