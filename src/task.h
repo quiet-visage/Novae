@@ -23,6 +23,7 @@ typedef struct {
     float diligence;
     float idle;
     float rest;
+    size_t hint_key;
 } Task;
 
 typedef enum {

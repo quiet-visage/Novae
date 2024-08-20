@@ -1,7 +1,5 @@
 #include "date_pick.h"
 
-#include <time.h>
-
 #include "alpha_inherit.h"
 #include "c32_vec.h"
 #include "colors.h"
@@ -21,14 +19,6 @@
 
 static FF_Style* g_calendar_style = &g_cfg.sstyle;
 
-static bool is_today(Date date) {
-    time_t now;
-    time(&now);
-    struct tm* now_local = localtime(&now);
-    return (now_local->tm_mday == date.day) && (now_local->tm_mon == date.month) &&
-           (now_local->tm_year == (date.year - 1900));
-}
-
 Date_Pick date_pick_create(void) {
     Date_Pick m = {0};
     m.calendar_btn = btn_create();
@@ -40,6 +30,7 @@ Date_Pick date_pick_create(void) {
     m.to_edit = date_edit_create(&m.to_buf);
     m.view_date = get_current_date();
     m.mo = motion_new();
+    m.hint_key = hint_generate_instance_key();
     return m;
 }
 
@@ -59,7 +50,7 @@ static void compact_view(Date_Pick* m, Vector2 cpos, bool enabled) {
     btn_draw_icon_only(&m->calendar_btn, calendar_btn_icon, cpos, btn_radius);
 
     if (enabled && m->state == DATE_PICK_STATE_COMPACT)
-        hint_view("open tag selection menu", REC_FROM_CIRCLE(cpos.x, cpos.y, btn_radius));
+        hint_view(m->hint_key, "open tag selection menu", REC_FROM_CIRCLE(cpos.x, cpos.y, btn_radius));
 
     bool clicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
                    CheckCollisionPointCircle(GetMousePosition(), (Vector2){cpos.x, cpos.y}, btn_radius);  // TODO

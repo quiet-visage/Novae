@@ -27,6 +27,7 @@ typedef struct {
     Motion scroll_al;
     Btn show_hidden_btn;
     int flags;
+    size_t hint_key;
 } Task_List;
 
 typedef enum {

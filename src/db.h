@@ -35,12 +35,10 @@ typedef struct {
 bool db_is_default_task(int id);
 void db_init(void);
 void db_terminate(void);
-
 Tag_Id db_create_tag(const char* name, unsigned color);
 void db_delete_tag(int id);
 size_t db_get_tag_count(void);
 void db_get_tags(Tag* out);  // allocates memory for tag.name, user needs to free it
-
 void db_print_table(void);
 Task_Id db_create_task(const char* name, int done, int left, size_t tag_id, Date_Range* date_range);
 void db_incr_done(int id);

@@ -29,6 +29,7 @@ typedef struct {
     Date_Edit to_edit;
     Motion mo;
     float target_alpha;
+    size_t hint_key;
 } Date_Pick;
 
 Date_Pick date_pick_create(void);
