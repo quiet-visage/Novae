@@ -1,7 +1,5 @@
 #include "date_pick.h"
 
-#include <time.h>
-
 #include "alpha_inherit.h"
 #include "c32_vec.h"
 #include "colors.h"
@@ -20,14 +18,6 @@
     (Rectangle) { x - r, y - r, r * 2, r * 2 }
 
 static FF_Style* g_calendar_style = &g_cfg.sstyle;
-
-static bool is_today(Date date) {
-    time_t now;
-    time(&now);
-    struct tm* now_local = localtime(&now);
-    return (now_local->tm_mday == date.day) && (now_local->tm_mon == date.month) &&
-           (now_local->tm_year == (date.year - 1900));
-}
 
 Date_Pick date_pick_create(void) {
     Date_Pick m = {0};
