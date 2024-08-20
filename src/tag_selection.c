@@ -218,6 +218,7 @@ Tag_Selection tag_selection_create(void) {
     result.search_btn = btn_create();
     result.selected = (size_t)-1;
     result.mo.f = 2.f;
+    result.hint_key =hint_generate_instance_key();
     return result;
 }
 
@@ -229,8 +230,9 @@ void tag_selection_destroy(Tag_Selection* m) {
 
 static void compact_view(Tag_Selection* m, float x, float y, bool enabled) {
     Rectangle tag_bg = tag_draw(m->tag, x, y, 0);
-    if (enabled && m->state == TAG_SELECTION_STATE_COMPACT) hint_view("open tag selection menu", tag_bg);
-    bool clicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), tag_bg);
+    if (enabled && m->state == TAG_SELECTION_STATE_COMPACT) hint_view(m->hint_key, "open tag selection menu", tag_bg);
+    bool clicked =
+        IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(GetMousePosition(), tag_bg);
     clicked *= m->state == TAG_SELECTION_STATE_COMPACT;
     if (!clicked) return;
     begin_open_view_fade_in(m);

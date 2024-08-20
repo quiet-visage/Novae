@@ -45,6 +45,7 @@ typedef struct {
     Btn add_tag_btn;
     Btn search_btn;
     size_t selected;
+    size_t hint_key;
 } Tag_Selection;
 
 Tag_Selection tag_selection_create(void);

@@ -11,6 +11,8 @@
 #include "config.h"
 #include "motion.h"
 
+#define HASH_TABLE_SIZE 0x200
+
 typedef struct {
     Motion motion;
     Rectangle bg;
@@ -18,8 +20,9 @@ typedef struct {
     float alpha;
     FF_Dimensions text_size;
     float time_hovering;
-    char desc[1024];
+    char desc[2048];
     size_t desc_len;
+    size_t instance_id;
 } Hint_Instance;
 
 #define HINT_INSTANCES_CAP 128
@@ -34,41 +37,49 @@ void hint_terminate(void) {}
 
 static inline float hint_min_width(void) { return g_cfg.outer_gap2 * 3; }
 
-static Hint_Instance* get_instance(const char* desc) {
-    size_t desc_len = strlen(desc);
-    for (size_t i = 0; i < HINT_INSTANCES_CAP; ++i) {
-        Hint_Instance* instance_ptr = &g_instances[i];
-        bool key_matches =
-            instance_ptr->desc_len && desc_len == instance_ptr->desc_len && !memcmp(desc, instance_ptr->desc, desc_len);
-        if (!key_matches) continue;
-        ++g_instances_len;
-        return instance_ptr;
-    }
+size_t hint_generate_instance_key() {
     assert(g_instances_len < HINT_INSTANCES_CAP);
-    Hint_Instance* instance_ptr = &g_instances[g_instances_len++];
-    memcpy(instance_ptr->desc, desc, desc_len);
-    instance_ptr->desc_len = desc_len;
-    instance_ptr->motion = motion_new();
-    return instance_ptr;
+    size_t key = g_instances_len++;
+    memset(&g_instances[key], 0, sizeof(*g_instances));
+    g_instances[key].motion = motion_new();
+    return key;
 }
 
-void hint_view(const char* desc, Rectangle bounds) {
-    Hint_Instance* instance = get_instance(desc);
+void hint_update_instance_desc(size_t key, const char* desc) {
+    Hint_Instance* instance = &g_instances[key];
+    memset(&instance->desc, 0, sizeof(instance->desc));
+    memcpy(&instance->desc, desc, strlen(desc));
+}
+
+static Hint_Instance* get_instance(size_t key) {
+    assert(key < HINT_INSTANCES_CAP);
+    return &g_instances[key];
+}
+
+void hint_view(size_t key, const char* desc, Rectangle bounds) {
+    Hint_Instance* instance = get_instance(key);
+
     Vector2 mouse = GetMousePosition();
     bool hovering = CheckCollisionPointRec(mouse, bounds);
-
-    float target_alpha = 0;
-
     if (hovering)
         instance->time_hovering += GetFrameTime();
-    else
+    else {
         instance->time_hovering = 0.;
+    }
+
     bool active = instance->time_hovering >= 2.;
+    float target_alpha = 0;
     if (active) target_alpha = alpha_inherit_get_alpha();
 
-    motion_update_x(&instance->motion, target_alpha, GetFrameTime());
+    float target[2] = {target_alpha, 0};
+    motion_update(&instance->motion, target, GetFrameTime());
     instance->alpha = instance->motion.position[0];
+
+    // printf("[%zx]: %f on:%d ta:%f mp:%f \n", instance_id, instance->time_hovering, active, target_alpha,
+    //        instance->motion.position[0]);
     if (instance->alpha < .1) return;
+    instance->desc_len = strlen(desc);
+    memcpy(instance->desc, desc, instance->desc_len);
     instance->text_size = ff_measure_utf8(desc, strlen(desc), *g_style);
 
     instance->bg.height = instance->text_size.height + g_cfg.inner_gap2;
@@ -84,6 +95,7 @@ void hint_view(const char* desc, Rectangle bounds) {
 }
 
 void hint_end_frame(void) {
+    printf("%ld\n", g_instances_len);
     for (size_t i = 0; i < g_instances_len; ++i) {
         Hint_Instance* instance = &g_instances[i];
         if (instance->alpha < .1) continue;
@@ -108,5 +120,4 @@ void hint_end_frame(void) {
                      instance->bg.y + instance->bg.height * .5 - instance->text_size.height * .5,
                      (float*)g_cfg.global_projection, style);
     }
-    g_instances_len = 0;
 }

@@ -34,6 +34,7 @@ Task task_create(void) {
         .bar_mo = motion_new(),
         .swipe = swipe_btn_create(),
     };
+    result.hint_key = hint_generate_instance_key();
     return result;
 }
 
@@ -205,7 +206,7 @@ Task_Return task_draw(Task* m, float x, float y, float max_width, Rectangle boun
 
         snprintf(hint_str, hint_cap, "Details:\nTime spent working: %s\nTime spent resting: %s\nTime spent idle: %s",
                  human_format_seconds(m->diligence), human_format_seconds(m->rest), human_format_seconds(m->idle));
-        hint_view(hint_str, title_bounds);
+        hint_view(m->hint_key,hint_str, title_bounds);
     }
 
     ff_draw_str32(m->name, m->name_len, name_x, name_y, (float*)g_cfg.global_projection, *g_style);

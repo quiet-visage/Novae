@@ -61,6 +61,7 @@ Task_List task_list_create(void) {
                      .scroll_al = motion_new(),
                      .show_hidden_btn = btn_create()};
     ret.show_hidden_btn.flags |= BTN_FLAG_DONT_DRAW_BG;
+    ret.hint_key = hint_generate_instance_key();
     return ret;
 }
 
@@ -194,7 +195,7 @@ Task_List_Return task_list_view(Task_List* m, float x, float y, float max_w, flo
         bool showing_hidden = m->flags & TASK_LIST_FLAG_SHOW_HIDDEN;
         int icon = showing_hidden ? ICON_VISIBILY_ON : ICON_VISIBILY_OFF;
         Rectangle bounds = {x + max_w - BTN_ICON_SIZE * 2, y - BTN_ICON_SIZE * .5, BTN_ICON_SIZE*2, BTN_ICON_SIZE*2};
-        hint_view(showing_hidden ? "toggle show hidden off" : "toggle show hidden on", bounds);
+        hint_view(m->hint_key, showing_hidden ? "toggle show hidden off" : "toggle show hidden on", bounds);
         bool clicked =
             btn_draw_with_icon(&m->show_hidden_btn, icon, x + max_w - BTN_ICON_SIZE * 2, y - BTN_ICON_SIZE * .5);
         if (clicked) m->flags ^= TASK_LIST_FLAG_SHOW_HIDDEN;

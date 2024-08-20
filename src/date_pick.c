@@ -30,6 +30,7 @@ Date_Pick date_pick_create(void) {
     m.to_edit = date_edit_create(&m.to_buf);
     m.view_date = get_current_date();
     m.mo = motion_new();
+    m.hint_key = hint_generate_instance_key();
     return m;
 }
 
@@ -49,7 +50,7 @@ static void compact_view(Date_Pick* m, Vector2 cpos, bool enabled) {
     btn_draw_icon_only(&m->calendar_btn, calendar_btn_icon, cpos, btn_radius);
 
     if (enabled && m->state == DATE_PICK_STATE_COMPACT)
-        hint_view("open tag selection menu", REC_FROM_CIRCLE(cpos.x, cpos.y, btn_radius));
+        hint_view(m->hint_key, "open tag selection menu", REC_FROM_CIRCLE(cpos.x, cpos.y, btn_radius));
 
     bool clicked = IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
                    CheckCollisionPointCircle(GetMousePosition(), (Vector2){cpos.x, cpos.y}, btn_radius);  // TODO
